@@ -7,7 +7,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 import graphviz
 
 # =========================
-# PAGE CONFIG
+# PAGE CONFIG (MODERN UI)
 # =========================
 st.set_page_config(
     page_title="AI Tutor Pro",
@@ -16,44 +16,95 @@ st.set_page_config(
 )
 
 # =========================
+# MODERN UI STYLE
+# =========================
+st.markdown("""
+<style>
+    .main-title {
+        font-size: 40px;
+        font-weight: 800;
+        text-align: center;
+        color: #4F8BF9;
+    }
+
+    .sub-text {
+        text-align: center;
+        font-size: 18px;
+        color: gray;
+        margin-bottom: 20px;
+    }
+
+    .card {
+        background-color: #111827;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 15px;
+        color: white;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# =========================
+# HEADER
+# =========================
+st.markdown('<div class="main-title">🎓 AI Tutor Pro</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-text">Smart Learning • Quiz • YouTube AI Summary • Visual Learning</div>', unsafe_allow_html=True)
+
+# =========================
 # SIMPLE AI TUTOR
 # =========================
 def ai_tutor(question):
     return f"""
 📘 ANSWER:
-
 {question}
 
 ✔ Definition:
-This is an important Computer Science concept.
+A core Computer Science concept.
 
 ✔ Explanation:
-It helps in structured problem solving and optimization.
+Used in solving structured problems efficiently.
 
 ✔ Example:
-Used in algorithms, AI systems, and real-world applications.
+Used in algorithms, databases, AI systems.
 
 ✔ Key Idea:
-Understand logic, not memorization.
-
-✔ Tip:
-Practice with examples for mastery.
+Focus on logic and optimization.
 """
 
 # =========================
-# QUIZ GENERATOR
+# QUIZ SYSTEM (FIXED)
 # =========================
 def generate_quiz(topic):
     return [
-        (f"What is {topic}?", "Concept"),
-        (f"Where is {topic} used?", "Algorithms"),
-        (f"Why is {topic} important?", "Efficiency"),
-        (f"Explain {topic}", "Steps"),
-        (f"{topic} belongs to?", "CS")
+        {
+            "q": f"What is {topic}?",
+            "options": ["Concept", "Algorithm", "Data", "System"],
+            "ans": "Concept"
+        },
+        {
+            "q": f"Where is {topic} used?",
+            "options": ["Web", "Algorithms", "Music", "Games"],
+            "ans": "Algorithms"
+        },
+        {
+            "q": f"Why is {topic} important?",
+            "options": ["Efficiency", "Style", "Speed", "Color"],
+            "ans": "Efficiency"
+        },
+        {
+            "q": f"{topic} belongs to which field?",
+            "options": ["CS", "Biology", "Physics", "Art"],
+            "ans": "CS"
+        },
+        {
+            "q": f"Main purpose of {topic}?",
+            "options": ["Problem Solving", "Painting", "Cooking", "Sports"],
+            "ans": "Problem Solving"
+        }
     ]
 
 # =========================
-# YOUTUBE UTILITIES
+# YOUTUBE HELPERS (FIXED)
 # =========================
 def get_video_id(url):
     if "v=" in url:
@@ -62,10 +113,9 @@ def get_video_id(url):
 
 def fetch_transcript(video_id):
     transcript = YouTubeTranscriptApi.get_transcript(video_id)
-    text = " ".join([t["text"] for t in transcript])
-    return text
+    return " ".join([t["text"] for t in transcript])
 
-def summarize_text(text, max_sentences=5):
+def summarize_text(text):
     words = text.lower().split()
     freq = Counter(words)
 
@@ -77,18 +127,16 @@ def summarize_text(text, max_sentences=5):
         scored.append((score, s))
 
     scored.sort(reverse=True)
-    summary = ".".join([s for _, s in scored[:max_sentences]])
-
-    return summary
+    return ". ".join([s for _, s in scored[:4]])
 
 # =========================
-# IMAGE FETCH (UNSPLASH)
+# IMAGES
 # =========================
 def get_images(topic):
     return [
-        f"https://source.unsplash.com/600x400/?{topic},technology",
-        f"https://source.unsplash.com/600x400/?{topic},computer",
-        f"https://source.unsplash.com/600x400/?{topic},data"
+        f"https://source.unsplash.com/800x400/?{topic}",
+        f"https://source.unsplash.com/800x400/?{topic},computer",
+        f"https://source.unsplash.com/800x400/?{topic},technology"
     ]
 
 # =========================
@@ -102,15 +150,13 @@ if "quiz" not in st.session_state:
     st.session_state.quiz = []
 if "started" not in st.session_state:
     st.session_state.started = False
-if "history" not in st.session_state:
-    st.session_state.history = []
 
 # =========================
-# SIDEBAR MENU
+# SIDEBAR
 # =========================
 menu = st.sidebar.radio(
-    "📌 MENU",
-    ["🤖 AI Tutor", "📝 Quiz", "🎥 YouTube Learning", "🧰 Tools", "📊 Analysis"]
+    "📌 Navigation",
+    ["🤖 AI Tutor", "📝 Quiz", "🎥 YouTube Learning", "📊 Dashboard"]
 )
 
 # =========================
@@ -118,78 +164,70 @@ menu = st.sidebar.radio(
 # =========================
 if menu == "🤖 AI Tutor":
 
-    st.title("🎓 AI Tutor Pro")
+    st.subheader("Ask Anything")
 
-    question = st.text_input("Ask your question")
+    q = st.text_input("Enter your question")
 
     if st.button("Get Answer"):
-        if question:
-            answer = ai_tutor(question)
-            st.success(answer)
-            st.session_state.history.append(question)
-        else:
-            st.warning("Enter a question")
-
-    st.subheader("📌 Recent Questions")
-    st.write(st.session_state.history[-5:])
+        if q:
+            st.success(ai_tutor(q))
 
 # =========================
-# 📝 QUIZ
+# 📝 QUIZ (FIXED OPTIONS)
 # =========================
 elif menu == "📝 Quiz":
 
-    st.title("📝 Smart Quiz System")
+    st.subheader("Smart Quiz System")
 
     topic = st.text_input("Enter topic")
 
     if st.button("Start Quiz"):
-        st.session_state.quiz = generate_quiz(topic)
-        st.session_state.q_index = 0
-        st.session_state.score = 0
-        st.session_state.started = True
+        if topic:
+            st.session_state.quiz = generate_quiz(topic)
+            st.session_state.q_index = 0
+            st.session_state.score = 0
+            st.session_state.started = True
 
     if st.session_state.started:
 
-        q_data = st.session_state.quiz
         i = st.session_state.q_index
+        quiz = st.session_state.quiz
 
-        if i < len(q_data):
+        if i < len(quiz):
 
-            q, correct = q_data[i]
-            st.subheader(f"Q{i+1}: {q}")
+            qdata = quiz[i]
 
-            options = ["Concept", "Algorithms", "Efficiency", "Steps", "CS"]
-            answer = st.radio("Choose answer", options, key=i)
+            st.markdown(f"### Q{i+1}: {qdata['q']}")
 
-            if st.button("Next"):
+            answer = st.radio("Choose answer", qdata["options"], key=i)
 
-                if answer == correct:
+            if st.button("Next Question"):
+
+                if answer == qdata["ans"]:
                     st.session_state.score += 1
 
                 st.session_state.q_index += 1
                 st.rerun()
 
         else:
-            st.success(f"🎉 Score: {st.session_state.score}/5")
+            st.success(f"Final Score: {st.session_state.score}/5")
 
-            if st.button("Restart"):
+            if st.button("Restart Quiz"):
                 st.session_state.started = False
-                st.session_state.q_index = 0
-                st.session_state.score = 0
                 st.rerun()
 
 # =========================
-# 🎥 YOUTUBE LEARNING HUB
+# 🎥 YOUTUBE (FIXED SINGLE INPUT)
 # =========================
 elif menu == "🎥 YouTube Learning":
 
-    st.title("🎥 YouTube AI Learning Hub")
+    st.subheader("YouTube AI Learning Hub")
 
-    url = st.text_input("Paste YouTube URL")
+    url = st.text_input("Paste YouTube URL here")
 
-    topic = st.text_input("Topic for visuals (e.g. sorting, DBMS)")
+    topic = st.text_input("Topic for visuals")
 
-    if st.button("Analyze Video"):
+    if st.button("Generate Learning Content"):
 
         if url:
 
@@ -197,99 +235,38 @@ elif menu == "🎥 YouTube Learning":
 
             try:
                 transcript = fetch_transcript(video_id)
-
-                st.subheader("📄 Auto Summary")
                 summary = summarize_text(transcript)
-                st.write(summary)
 
-                st.subheader("🖼️ Visual Learning Images")
-                images = get_images(topic)
+                st.markdown("### 📄 AI Summary")
+                st.info(summary)
 
-                for img in images:
+                st.markdown("### 🖼️ Visual Learning")
+                for img in get_images(topic):
                     st.image(img)
 
-                st.subheader("🔁 Flowchart (Concept Map)")
+                st.markdown("### 🔁 Flowchart")
 
                 dot = graphviz.Digraph()
-
                 dot.node("A", topic)
                 dot.node("B", "Definition")
                 dot.node("C", "Working")
-                dot.node("D", "Applications")
+                dot.node("D", "Use Cases")
 
                 dot.edges(["AB", "AC", "AD"])
 
                 st.graphviz_chart(dot)
 
-                st.subheader("🧪 Simple Simulation")
-
-                st.write("Sorting Simulation (Bubble Sort Steps)")
-
-                data = [random.randint(1, 20) for _ in range(10)]
-                st.write("Initial Data:", data)
-
-                if st.button("Run Simulation"):
-
-                    chart = st.line_chart(data)
-
-                    arr = data[:]
-
-                    for i in range(len(arr)):
-                        for j in range(len(arr)-i-1):
-                            if arr[j] > arr[j+1]:
-                                arr[j], arr[j+1] = arr[j+1], arr[j]
-
-                            chart.add_rows(arr)
-                            time.sleep(0.2)
-
-            except Exception as e:
-                st.error("Could not fetch transcript. Try another video.")
+            except:
+                st.error("Transcript not available for this video.")
 
 # =========================
-# 🧰 TOOLS
+# 📊 DASHBOARD
 # =========================
-elif menu == "🧰 Tools":
+elif menu == "📊 Dashboard":
 
-    st.title("🧰 Study Tools")
+    st.subheader("Student Analytics")
 
-    tool = st.selectbox("Choose Tool", [
-        "Quick Notes Maker",
-        "Study Timer",
-        "Simple Calculator"
-    ])
+    st.metric("Quiz Score", st.session_state.score)
+    st.metric("Quiz Progress", f"{st.session_state.q_index}/5")
 
-    if tool == "Quick Notes Maker":
-        text = st.text_area("Topic")
-        if st.button("Generate"):
-            st.info(f"📘 {text} is a key CS concept used in problem solving and systems.")
-
-    elif tool == "Study Timer":
-        minutes = st.number_input("Minutes", 1, 60, 5)
-        if st.button("Start"):
-            st.success(f"Timer started for {minutes} minutes")
-
-    elif tool == "Simple Calculator":
-        a = st.number_input("A")
-        b = st.number_input("B")
-        op = st.selectbox("Operation", ["Add", "Subtract", "Multiply"])
-
-        if st.button("Calculate"):
-            if op == "Add":
-                st.success(a + b)
-            elif op == "Subtract":
-                st.success(a - b)
-            else:
-                st.success(a * b)
-
-# =========================
-# 📊 ANALYSIS
-# =========================
-elif menu == "📊 Analysis":
-
-    st.title("📊 Student Analytics")
-
-    st.metric("Questions Asked", len(st.session_state.history))
-    st.metric("Last Quiz Score", st.session_state.score)
-
-    st.write("Recent Activity")
-    st.write(st.session_state.history[-10:])
+    st.progress(st.session_state.q_index / 5 if st.session_state.started else 0)
