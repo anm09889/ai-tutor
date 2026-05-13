@@ -1,4 +1,5 @@
 import streamlit as st
+import random
 import graphviz
 from transformers import pipeline
 
@@ -6,123 +7,114 @@ from transformers import pipeline
 # PAGE CONFIG
 # =========================
 st.set_page_config(
-    page_title="AI Tutor Pro (Industry)",
+    page_title="College AI Tutor",
     page_icon="🎓",
     layout="wide"
 )
 
 # =========================
-# LOAD REAL AI MODEL (FAST + FREE)
+# LOAD AI MODEL
 # =========================
 @st.cache_resource
-def load_model():
+def load_ai():
     return pipeline("text-generation", model="gpt2")
 
-model = load_model()
+ai = load_ai()
 
 # =========================
 # UI HEADER
 # =========================
 st.markdown("""
-    <h1 style='text-align:center; color:#4F8BF9;'>🎓 AI Tutor Pro - Industry Level</h1>
-    <p style='text-align:center; color:gray;'>AI Tutor • Smart Quiz • Learning Path • Visualization</p>
+    <h1 style='text-align:center; color:#4F8BF9;'>🎓 College AI Tutor</h1>
+    <p style='text-align:center; color:gray;'>DSA • DBMS • OS • CN • AI Learning System</p>
 """, unsafe_allow_html=True)
 
 # =========================
 # SESSION STATE
 # =========================
-for key in ["score", "q_index", "quiz", "started"]:
+for key in ["score", "q_index", "quiz", "started", "history"]:
     if key not in st.session_state:
-        st.session_state[key] = 0 if key == "score" or key == "q_index" else [] if key == "quiz" else False
+        st.session_state[key] = [] if key == "history" else 0 if key in ["score","q_index"] else False if key=="started" else []
 
 # =========================
-# 🧠 REAL AI ANSWER ENGINE
+# 🧠 AI EXPLANATION ENGINE
 # =========================
-def ai_answer(topic, level):
+def explain_topic(topic, mode):
 
     prompt = f"""
-Explain the topic in detail.
+Explain {topic} for college students.
 
-Topic: {topic}
-Level: {level}
+Mode: {mode}
 
 Include:
 - Definition
 - Working
 - Real-world use cases
-- Complexity or importance
+- Exam importance
+- Key points
 """
 
-    result = model(prompt, max_length=200, do_sample=True)[0]["generated_text"]
+    result = ai(prompt, max_length=220, do_sample=True)[0]["generated_text"]
 
     return result
 
 # =========================
-# 📝 QUIZ GENERATOR (INDUSTRY LEVEL)
+# 📝 SMART QUIZ GENERATOR
 # =========================
-def generate_quiz(topic, level):
+def generate_options(correct):
 
     base = [
+        "Stack based approach",
+        "Queue mechanism",
+        "Hashing technique",
+        "Recursive strategy",
+        "Greedy method",
+        "Divide and Conquer",
+        "Dynamic Programming"
+    ]
+
+    base = list(set(base + [correct]))
+    random.shuffle(base)
+
+    return base[:4]
+
+
+def generate_quiz(topic):
+
+    return [
         {
-            "q": f"What best describes {topic}?",
-            "options": [
-                "A structured problem-solving technique",
-                "A graphical design tool",
-                "A music system",
-                "A hardware component"
-            ],
-            "ans": "A structured problem-solving technique"
+            "q": f"Which best describes {topic}?",
+            "ans": "Problem Solving Technique",
+            "options": generate_options("Problem Solving Technique")
         },
         {
-            "q": f"Which concept is essential in analyzing {topic}?",
-            "options": [
-                "Time and Space Complexity",
-                "Color grading",
-                "Audio signals",
-                "Pixel rendering"
-            ],
-            "ans": "Time and Space Complexity"
+            "q": f"What is main idea of {topic}?",
+            "ans": "Efficient Computation",
+            "options": generate_options("Efficient Computation")
         },
         {
-            "q": f"{topic} is mainly used in?",
-            "options": [
-                "Algorithm design",
-                "Video editing",
-                "Game graphics",
-                "Photography"
-            ],
-            "ans": "Algorithm design"
+            "q": f"{topic} is used in which field?",
+            "ans": "Computer Science",
+            "options": generate_options("Computer Science")
         },
         {
-            "q": f"What improves performance in {topic}?",
-            "options": [
-                "Optimization techniques",
-                "Increasing size",
-                "Adding colors",
-                "Using images"
-            ],
-            "ans": "Optimization techniques"
+            "q": f"Key factor in {topic}?",
+            "ans": "Time Complexity",
+            "options": generate_options("Time Complexity")
         },
         {
-            "q": f"{topic} often involves?",
-            "options": [
-                "Logical reasoning",
-                "Painting skills",
-                "Sound mixing",
-                "Animation"
-            ],
-            "ans": "Logical reasoning"
+            "q": f"{topic} improves which system property?",
+            "ans": "Performance",
+            "options": generate_options("Performance")
         }
     ]
 
-    return base if level == "Medium" else base
-
 # =========================
-# SIDEBAR
+# SIDEBAR MENU
 # =========================
 menu = st.sidebar.radio(
     "📌 Navigation",
-    ["🤖 AI Tutor", "📝 Quiz Engine", "📊 Learning Visualizer"]
+    ["🤖 AI Tutor", "📝 Exam Mode", "📊 Learning Path"]
 )
 
 # =========================
@@ -130,30 +122,30 @@ menu = st.sidebar.radio(
 # =========================
 if menu == "🤖 AI Tutor":
 
-    st.subheader("AI Learning Assistant")
+    st.subheader("Smart Explanation System")
 
-    topic = st.text_input("Enter topic (DSA, OS, DBMS, etc.)")
+    topic = st.text_input("Enter topic (DSA / OS / DBMS / CN)")
 
-    level = st.selectbox("Difficulty Level", ["Beginner", "Intermediate", "Advanced"])
+    mode = st.selectbox("Learning Mode", ["Beginner", "Exam", "Interview"])
 
     if st.button("Generate Explanation"):
 
         if topic:
-            response = ai_answer(topic, level)
-            st.success(response)
+            st.session_state.history.append(topic)
+
+            st.success(explain_topic(topic, mode))
 
 # =========================
-# 📝 QUIZ ENGINE
+# 📝 EXAM MODE
 # =========================
-elif menu == "📝 Quiz Engine":
+elif menu == "📝 Exam Mode":
 
-    st.subheader("Smart MCQ Assessment System")
+    st.subheader("College-Level MCQ Exam")
 
     topic = st.text_input("Enter topic")
-    level = st.selectbox("Difficulty", ["Easy", "Medium", "Hard"])
 
-    if st.button("Start Quiz") and topic:
-        st.session_state.quiz = generate_quiz(topic, level)
+    if st.button("Start Exam") and topic:
+        st.session_state.quiz = generate_quiz(topic)
         st.session_state.q_index = 0
         st.session_state.score = 0
         st.session_state.started = True
@@ -170,12 +162,12 @@ elif menu == "📝 Quiz Engine":
             st.markdown(f"### Q{i+1}: {q['q']}")
 
             answer = st.radio(
-                "Select Answer",
+                "Choose answer",
                 q["options"],
                 key=f"q_{i}"
             )
 
-            if st.button("Next"):
+            if st.button("Next Question"):
 
                 if answer == q["ans"]:
                     st.session_state.score += 1
@@ -188,38 +180,40 @@ elif menu == "📝 Quiz Engine":
 
             st.progress(st.session_state.score / 5)
 
-            if st.button("Restart"):
+            if st.button("Restart Exam"):
                 st.session_state.started = False
                 st.rerun()
 
 # =========================
-# 📊 VISUAL LEARNING SYSTEM
+# 📊 LEARNING PATH VISUALIZER
 # =========================
-elif menu == "📊 Learning Visualizer":
+elif menu == "📊 Learning Path":
 
-    st.subheader("Concept Learning Flow")
+    st.subheader("Concept Understanding Flow")
 
     topic = st.text_input("Enter topic")
 
-    if st.button("Generate Learning Path"):
+    if st.button("Generate Path"):
 
         if topic:
-
-            st.markdown("### 🔁 Knowledge Flow")
 
             dot = graphviz.Digraph()
 
             dot.node("A", topic)
             dot.node("B", "Definition")
-            dot.node("C", "Working Principle")
+            dot.node("C", "Working")
             dot.node("D", "Applications")
-            dot.node("E", "Optimization")
+            dot.node("E", "Complexity Analysis")
+            dot.node("F", "Interview Importance")
 
             dot.edges([
-                ("A", "B"),
-                ("A", "C"),
-                ("C", "D"),
-                ("C", "E")
+                ("A","B"),
+                ("A","C"),
+                ("C","D"),
+                ("C","E"),
+                ("C","F")
             ])
 
             st.graphviz_chart(dot)
+
+    st.info("Use this to understand how concepts connect in real exams and interviews.")
