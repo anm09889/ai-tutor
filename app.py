@@ -1,63 +1,76 @@
 import streamlit as st
 from transformers import pipeline
 import random
+import time
 
 # =========================
-# PAGE CONFIG
+# PAGE CONFIG (UI IMPROVED)
 # =========================
-st.set_page_config(page_title="AI Tutor", layout="wide")
+st.set_page_config(
+    page_title="AI Tutor Pro",
+    page_icon="🎓",
+    layout="wide"
+)
 
 # =========================
-# LOAD MODEL (NO API KEY)
+# FAST AI MODEL LOADER
 # =========================
 @st.cache_resource
 def load_model():
-    return pipeline("text-generation", model="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
+    return pipeline(
+        "text-generation",
+        model="TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+    )
 
 generator = load_model()
 
 # =========================
-# QUIZ DATA
+# SESSION STATE (STUDENT ANALYSIS)
 # =========================
-quiz_bank = {
-    "Sorting": [
-        {
-            "question": "Time complexity of Merge Sort?",
-            "options": ["O(n²)", "O(n log n)", "O(n)", "O(log n)"],
-            "answer": "O(n log n)"
-        },
-        {
-            "question": "Which is divide and conquer?",
-            "options": ["Bubble Sort", "Merge Sort", "Stack", "Queue"],
-            "answer": "Merge Sort"
-        }
-    ],
-    "Searching": [
-        {
-            "question": "Binary search works on?",
-            "options": ["Unsorted array", "Sorted array", "Graph", "Tree"],
-            "answer": "Sorted array"
-        },
-        {
-            "question": "Worst case of linear search?",
-            "options": ["O(1)", "O(n)", "O(log n)", "O(n²)"],
-            "answer": "O(n)"
-        }
-    ]
-}
+if "scores" not in st.session_state:
+    st.session_state.scores = []
+if "attempts" not in st.session_state:
+    st.session_state.attempts = 0
 
 # =========================
-# AI FUNCTION
+# SIMPLE QUESTION GENERATOR (NO API KEY)
 # =========================
-def get_answer(question):
+def generate_quiz(topic):
+    base_questions = [
+        f"What is {topic}?",
+        f"Explain the main idea of {topic}.",
+        f"Where is {topic} used?",
+        f"What are advantages of {topic}?",
+        f"What is time complexity related to {topic}?"
+    ]
+
+    quiz = []
+    for q in base_questions:
+        quiz.append({
+            "question": q,
+            "options": [
+                "Correct concept explanation",
+                "Wrong answer A",
+                "Wrong answer B",
+                "Wrong answer C"
+            ],
+            "answer": "Correct concept explanation"
+        })
+
+    return quiz
+
+# =========================
+# AI ANSWER FUNCTION
+# =========================
+def get_ai_answer(question):
     prompt = f"""
-You are a DAA expert tutor.
+You are an expert DSA tutor.
 
 Explain clearly:
 - Definition
 - Steps
 - Example
-- Complexity
+- Real-life use
 
 Question: {question}
 Answer:
@@ -74,38 +87,84 @@ Answer:
     return result[0]["generated_text"].replace(prompt, "")
 
 # =========================
-# UI DESIGN
+# UI DESIGN (MODERN)
 # =========================
-st.title("🎓 AI DAA Tutor (No API Key)")
+st.title("🎓 AI Tutor Pro (Smart Learning System)")
 
-tab1, tab2 = st.tabs(["💬 AI Chat", "📝 Quiz"])
+tab1, tab2, tab3 = st.tabs(["💬 AI Tutor", "📝 Quiz", "📊 Student Analysis"])
 
 # =========================
-# CHAT SECTION
+# TAB 1 - AI TUTOR
 # =========================
 with tab1:
-    q = st.text_input("Ask your question")
+    st.subheader("Ask Anything")
+
+    question = st.text_input("Enter your question")
 
     if st.button("Get Answer"):
-        if q:
-            st.write(get_answer(q))
+        if question:
+            with st.spinner("Thinking..."):
+                answer = get_ai_answer(question)
+                st.success(answer)
         else:
-            st.warning("Enter a question first")
+            st.warning("Please enter a question")
 
 # =========================
-# QUIZ SECTION
+# TAB 2 - QUIZ SYSTEM
 # =========================
 with tab2:
-    topic = st.selectbox("Choose Topic", list(quiz_bank.keys()))
+    st.subheader("Topic-Based Quiz Generator")
 
-    quiz = random.choice(quiz_bank[topic])
+    topic = st.text_input("Enter topic for quiz (e.g. sorting, DBMS, AI)")
 
-    st.subheader(quiz["question"])
+    if st.button("Generate Quiz"):
 
-    choice = st.radio("Options", quiz["options"])
+        if topic:
+            quiz = generate_quiz(topic)
 
-    if st.button("Submit"):
-        if choice == quiz["answer"]:
-            st.success("Correct ✅")
+            score = 0
+            answers = []
+
+            for i, q in enumerate(quiz):
+                st.markdown(f"### Q{i+1}: {q['question']}")
+
+                choice = st.radio(
+                    "Choose answer",
+                    q["options"],
+                    key=f"q{i}"
+                )
+
+                answers.append((choice, q["answer"]))
+
+            if st.button("Submit Quiz"):
+
+                score = sum([1 for a, b in answers if a == b])
+
+                st.success(f"Your Score: {score}/5")
+
+                # save analysis
+                st.session_state.scores.append(score)
+                st.session_state.attempts += 1
+
+                st.info("Go to Student Analysis tab for performance tracking")
+
         else:
-            st.error(f"Wrong ❌ Correct answer: {quiz['answer']}")
+            st.warning("Enter a topic first")
+
+# =========================
+# TAB 3 - STUDENT ANALYSIS
+# =========================
+with tab3:
+    st.subheader("📊 Performance Dashboard")
+
+    if st.session_state.attempts == 0:
+        st.info("No quiz attempts yet")
+    else:
+        avg = sum(st.session_state.scores) / len(st.session_state.scores)
+
+        st.metric("Total Attempts", st.session_state.attempts)
+        st.metric("Average Score", round(avg, 2))
+
+        st.line_chart(st.session_state.scores)
+
+        st.write("Score History:", st.session_state.scores)
