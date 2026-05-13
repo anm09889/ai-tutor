@@ -1,15 +1,14 @@
 import streamlit as st
-import pyttsx3
-import speech_recognition as sr
 import random
+import graphviz
 from transformers import pipeline
 
 # =========================
-# PAGE CONFIG
+# APP CONFIG
 # =========================
 st.set_page_config(
-    page_title="Jarvis AI Tutor",
-    page_icon="🎤",
+    page_title="AI EdTech Platform",
+    page_icon="🎓",
     layout="wide"
 )
 
@@ -23,33 +22,27 @@ def load_model():
 ai = load_model()
 
 # =========================
-# VOICE ENGINE
+# HEADER
 # =========================
-engine = pyttsx3.init()
-engine.setProperty("rate", 170)
-
-def speak(text):
-    engine.say(text)
-    engine.runAndWait()
-
-def listen():
-    r = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.info("🎤 Listening...")
-        audio = r.listen(source)
-
-    try:
-        return r.recognize_google(audio)
-    except:
-        return "Could not understand audio"
+st.markdown("""
+<h1 style='text-align:center; color:#4F8BF9;'>🎓 AI EdTech Platform</h1>
+<p style='text-align:center; color:gray;'>Tutor • Exam • Interview • Analytics • Concept Mapping</p>
+""", unsafe_allow_html=True)
 
 # =========================
-# AI BRAIN
+# SESSION STATE
 # =========================
-def ai_answer(topic, mode):
+for key in ["score", "q_index", "quiz", "started", "history"]:
+    if key not in st.session_state:
+        st.session_state[key] = [] if key == "history" else 0 if key in ["score","q_index"] else False if key=="started" else []
+
+# =========================
+# AI ENGINE
+# =========================
+def ai_response(topic, mode):
 
     prompt = f"""
-Explain {topic} for college students.
+Explain {topic} for students.
 
 Mode: {mode}
 
@@ -58,113 +51,105 @@ Include:
 - Working
 - Real-world use
 - Interview importance
-- Exam notes
+- Exam answer format
 """
 
-    result = ai(prompt, max_length=200, do_sample=True)[0]["generated_text"]
+    result = ai(prompt, max_length=220, do_sample=True)[0]["generated_text"]
+
     return result
 
 # =========================
-# QUIZ ENGINE
+# EXAM QUESTIONS (MEDIUM LEVEL)
 # =========================
 def generate_quiz(topic):
 
     return [
         {
-            "q": f"What is {topic} mainly used for?",
-            "options": ["Problem solving", "Painting", "Music", "Graphics"],
-            "ans": "Problem solving"
+            "q": f"What is the core idea of {topic}?",
+            "options": [
+                "Efficient problem solving",
+                "Random execution",
+                "Visual design",
+                "Hardware optimization"
+            ],
+            "ans": "Efficient problem solving"
         },
         {
-            "q": f"{topic} belongs to which field?",
-            "options": ["Computer Science", "Biology", "History", "Art"],
-            "ans": "Computer Science"
+            "q": f"{topic} is mainly used in?",
+            "options": [
+                "Algorithms & Data Structures",
+                "Graphic Design",
+                "Video Editing",
+                "Networking hardware"
+            ],
+            "ans": "Algorithms & Data Structures"
         },
         {
-            "q": f"Key idea behind {topic}?",
-            "options": ["Efficiency", "Decoration", "Noise", "Randomness"],
-            "ans": "Efficiency"
+            "q": f"Key factor in analyzing {topic}?",
+            "options": [
+                "Time and Space Complexity",
+                "Color grading",
+                "Audio frequency",
+                "Image resolution"
+            ],
+            "ans": "Time and Space Complexity"
         },
         {
-            "q": f"{topic} improves?",
-            "options": ["Performance", "Color", "Sound", "Image"],
+            "q": f"{topic} improves which system property?",
+            "options": [
+                "Performance",
+                "Decoration",
+                "Sound",
+                "Brightness"
+            ],
             "ans": "Performance"
         },
         {
             "q": f"{topic} is related to?",
-            "options": ["Algorithms", "Painting", "Music", "Dance"],
-            "ans": "Algorithms"
+            "options": [
+                "Logical reasoning",
+                "Painting",
+                "Music",
+                "Animation"
+            ],
+            "ans": "Logical reasoning"
         }
     ]
 
 # =========================
-# SESSION STATE
-# =========================
-for key in ["score", "q_index", "quiz", "started", "history", "last_topic"]:
-    if key not in st.session_state:
-        st.session_state[key] = [] if key == "history" else 0 if key in ["score","q_index"] else False if key=="started" else ""
-
-# =========================
-# HEADER
-# =========================
-st.markdown("""
-<h1 style='text-align:center; color:#4F8BF9;'>🎤 JARVIS AI TUTOR</h1>
-<p style='text-align:center; color:gray;'>Voice AI • Exam Mode • Smart Tutor • College Assistant</p>
-""", unsafe_allow_html=True)
-
-# =========================
-# SIDEBAR
+# SIDEBAR NAVIGATION
 # =========================
 menu = st.sidebar.radio(
     "📌 Navigation",
-    ["🎤 Voice Tutor", "📝 Exam Mode", "🧠 Chat Mode"]
+    ["🤖 AI Tutor", "📝 Exam Mode", "🎯 Interview Mode", "🔁 Concept Map", "📊 Analytics"]
 )
 
 # =========================
-# 🎤 VOICE TUTOR (CORE)
+# 🤖 AI TUTOR MODULE
 # =========================
-if menu == "🎤 Voice Tutor":
+if menu == "🤖 AI Tutor":
 
-    st.subheader("Jarvis Voice Assistant")
+    st.subheader("Smart AI Tutor Engine")
 
-    mode = st.selectbox("Mode", ["Beginner", "Intermediate", "Advanced", "Interview"])
+    topic = st.text_input("Enter topic (DSA, OS, DBMS, CN, AI)")
 
-    col1, col2 = st.columns(2)
+    mode = st.selectbox("Mode", ["Beginner", "Intermediate", "Advanced", "Interview", "Exam Answer"])
 
-    with col1:
+    if st.button("Generate Explanation"):
 
-        topic = st.text_input("Enter topic")
-
-        if st.button("Get AI Answer") and topic:
-            answer = ai_answer(topic, mode)
-            st.success(answer)
-
-            if st.button("🔊 Speak Answer"):
-                speak(answer)
-
-            st.session_state.last_topic = topic
+        if topic:
             st.session_state.history.append(topic)
+            st.success(ai_response(topic, mode))
 
-    with col2:
-
-        if st.button("🎤 Speak Question"):
-
-            spoken = listen()
-            st.write("You said:", spoken)
-
-            answer = ai_answer(spoken, mode)
-
-            st.success(answer)
-            speak(answer)
-
-            st.session_state.history.append(spoken)
+    st.write("Recent Topics:")
+    st.write(st.session_state.history[-5:])
 
 # =========================
 # 📝 EXAM MODE
 # =========================
 elif menu == "📝 Exam Mode":
 
-    st.subheader("AI Exam System")
+    st.subheader("College-Level MCQ Exam System")
 
     topic = st.text_input("Enter topic")
 
@@ -185,43 +170,85 @@ elif menu == "📝 Exam Mode":
 
             st.markdown(f"### Q{i+1}: {q['q']}")
 
-            ans = st.radio("Choose answer", q["options"], key=f"q_{i}")
+            answer = st.radio(
+                "Select answer",
+                q["options"],
+                key=f"q_{i}"
+            )
 
             if st.button("Next"):
 
-                if ans == q["ans"]:
+                if answer == q["ans"]:
                     st.session_state.score += 1
 
                 st.session_state.q_index += 1
                 st.rerun()
 
         else:
-            st.success(f"🎯 Score: {st.session_state.score}/5")
+            st.success(f"🎯 Final Score: {st.session_state.score}/5")
+            st.progress(st.session_state.score / 5)
 
-            if st.button("Restart"):
+            if st.button("Restart Exam"):
                 st.session_state.started = False
                 st.rerun()
 
 # =========================
-# 🧠 CHAT MODE (MEMORY STYLE)
+# 🎯 INTERVIEW MODE
 # =========================
-elif menu == "🧠 Chat Mode":
+elif menu == "🎯 Interview Mode":
 
-    st.subheader("Jarvis Chat Assistant")
+    st.subheader("Interview Preparation Mode")
 
-    if "chat" not in st.session_state:
-        st.session_state.chat = []
+    topic = st.text_input("Enter topic")
 
-    user_input = st.text_input("Talk to Jarvis")
+    if st.button("Generate Interview Answer"):
 
-    if st.button("Send") and user_input:
+        if topic:
+            st.info(ai_response(topic, "Interview"))
 
-        response = ai_answer(user_input, "Chat Mode")
+# =========================
+# 🔁 CONCEPT MAP
+# =========================
+elif menu == "🔁 Concept Map":
 
-        st.session_state.chat.append(("You", user_input))
-        st.session_state.chat.append(("Jarvis", response))
+    st.subheader("Concept Relationship Graph")
 
-        speak(response)
+    topic = st.text_input("Enter topic")
 
-    for role, msg in st.session_state.chat[-10:]:
-        st.write(f"**{role}:** {msg}")
+    if st.button("Generate Map"):
+
+        if topic:
+
+            dot = graphviz.Digraph()
+
+            dot.node("A", topic)
+            dot.node("B", "Core Idea")
+            dot.node("C", "Working Principle")
+            dot.node("D", "Applications")
+            dot.node("E", "Complexity / Importance")
+            dot.node("F", "Related Concepts")
+
+            dot.edges([
+                ("A","B"),
+                ("A","C"),
+                ("C","D"),
+                ("C","E"),
+                ("C","F")
+            ])
+
+            st.graphviz_chart(dot)
+
+# =========================
+# 📊 ANALYTICS
+# =========================
+elif menu == "📊 Analytics":
+
+    st.subheader("Student Learning Analytics")
+
+    st.metric("Topics Studied", len(st.session_state.history))
+    st.metric("Last Score", st.session_state.score)
+
+    st.progress(min(st.session_state.q_index / 5, 1.0))
+
+    st.write("Recent Topics:")
+    st.write(st.session_state.history[-10:])
