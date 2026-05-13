@@ -1,148 +1,129 @@
 import streamlit as st
 import random
-import time
-from collections import Counter
-from youtube_transcript_api import YouTubeTranscriptApi
 import graphviz
 
 # =========================
 # PAGE CONFIG
 # =========================
 st.set_page_config(
-    page_title="AI Tutor Pro",
+    page_title="AI Learning System",
     page_icon="🎓",
     layout="wide"
 )
 
 # =========================
-# UI STYLE
+# UI HEADER
 # =========================
 st.markdown("""
-<style>
-.main-title {
-    font-size: 42px;
-    font-weight: 800;
-    text-align: center;
-    color: #4F8BF9;
-}
-
-.card {
-    background: #111827;
-    padding: 18px;
-    border-radius: 15px;
-    color: white;
-    margin-bottom: 15px;
-}
-</style>
+    <h1 style='text-align:center; color:#4F8BF9;'>🎓 AI Learning System</h1>
+    <p style='text-align:center; color:gray;'>Smart Tutor • MCQ Quiz • Visual Learning</p>
 """, unsafe_allow_html=True)
-
-st.markdown('<div class="main-title">🎓 AI Tutor Pro Max</div>', unsafe_allow_html=True)
 
 # =========================
 # SESSION STATE
 # =========================
-for key in ["score", "q_index", "quiz", "started", "history"]:
-    if key not in st.session_state:
-        st.session_state[key] = 0 if key == "score" or key == "q_index" else [] if key == "history" else False if key == "started" else []
+if "score" not in st.session_state:
+    st.session_state.score = 0
+if "q_index" not in st.session_state:
+    st.session_state.q_index = 0
+if "quiz" not in st.session_state:
+    st.session_state.quiz = []
+if "started" not in st.session_state:
+    st.session_state.started = False
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 # =========================
-# AI TUTOR (IMPROVED)
+# AI TUTOR (NO API)
 # =========================
-def ai_tutor(question, level="Beginner"):
+def ai_tutor(topic):
 
     return f"""
-📘 QUESTION: {question}
+📘 Topic: {topic}
 
-🧠 Level: {level}
+✔ Core Concept:
+{topic} is an important concept in Computer Science used for solving structured computational problems.
 
 ✔ Explanation:
-This is a core Computer Science concept used in problem solving.
+It focuses on efficient design, optimization, and structured problem-solving approaches.
 
-✔ Real-world Use:
-Search engines, AI systems, databases, apps.
+✔ Real-world Usage:
+- Software development  
+- System design  
+- Databases  
+- Algorithms  
 
 ✔ Key Idea:
-Understand logic + structure.
+Understanding time complexity and logical structure is important.
 
 ✔ Tip:
-Practice examples instead of memorizing.
+Focus on understanding *why* it works, not just memorizing it.
 """
 
 # =========================
-# QUIZ GENERATOR (FIXED + BETTER)
+# MEDIUM LEVEL QUIZ (IMPROVED OPTIONS)
 # =========================
 def generate_quiz(topic):
 
     return [
         {
-            "q": f"What is {topic}?",
-            "options": ["Concept", "Algorithm", "Data", "System"],
-            "ans": "Concept"
+            "q": f"What is the primary goal of {topic}?",
+            "options": [
+                "Efficient problem solving",
+                "Decorative coding style",
+                "Random output generation",
+                "Memory formatting"
+            ],
+            "ans": "Efficient problem solving"
         },
         {
-            "q": f"Where is {topic} used?",
-            "options": ["AI", "Cooking", "Sports", "Music"],
-            "ans": "AI"
+            "q": f"{topic} is most closely related to which area?",
+            "options": [
+                "Data Structures & Algorithms",
+                "Graphic Design",
+                "Music Production",
+                "Civil Engineering"
+            ],
+            "ans": "Data Structures & Algorithms"
         },
         {
-            "q": f"Why is {topic} important?",
-            "options": ["Efficiency", "Decoration", "Noise", "Color"],
+            "q": f"What is an important factor in analyzing {topic}?",
+            "options": [
+                "Time and Space Complexity",
+                "Color combination",
+                "Font size",
+                "Animation speed"
+            ],
+            "ans": "Time and Space Complexity"
+        },
+        {
+            "q": f"{topic} helps in improving which system property?",
+            "options": [
+                "Efficiency",
+                "Decoration",
+                "Sound quality",
+                "Brightness"
+            ],
             "ans": "Efficiency"
         },
         {
-            "q": f"{topic} belongs to?",
-            "options": ["Computer Science", "Biology", "Physics", "Art"],
-            "ans": "Computer Science"
-        },
-        {
-            "q": f"Main purpose of {topic}?",
-            "options": ["Problem Solving", "Painting", "Gaming", "Cooking"],
-            "ans": "Problem Solving"
+            "q": f"Which concept is often used with {topic}?",
+            "options": [
+                "Recursion and iteration",
+                "Painting tools",
+                "Audio mixing",
+                "Video editing"
+            ],
+            "ans": "Recursion and iteration"
         }
     ]
 
 # =========================
-# YOUTUBE HELPERS
-# =========================
-def get_video_id(url):
-    if "v=" in url:
-        return url.split("v=")[1].split("&")[0]
-    return url.split("/")[-1]
-
-def fetch_transcript(video_id):
-    transcript = YouTubeTranscriptApi.get_transcript(video_id)
-    return " ".join([t["text"] for t in transcript])
-
-def summarize(text):
-    words = text.lower().split()
-    freq = Counter(words)
-
-    sentences = text.split(".")
-    scored = []
-
-    for s in sentences:
-        score = sum(freq[w] for w in s.lower().split() if w in freq)
-        scored.append((score, s))
-
-    scored.sort(reverse=True)
-    return ". ".join([s for _, s in scored[:5]])
-
-# =========================
-# IMAGES
-# =========================
-def get_images(topic):
-    return [
-        f"https://source.unsplash.com/800x400/?{topic}",
-        f"https://source.unsplash.com/800x400/?{topic},technology",
-        f"https://source.unsplash.com/800x400/?{topic},computer"
-    ]
-
-# =========================
-# SIDEBAR
+# SIDEBAR MENU
 # =========================
 menu = st.sidebar.radio(
     "📌 Navigation",
-    ["🤖 AI Tutor", "📝 Quiz", "🎥 YouTube Learning", "📊 Insights"]
+    ["🤖 AI Tutor", "📝 Quiz", "📊 Visual Learning"]
 )
 
 # =========================
@@ -150,27 +131,26 @@ menu = st.sidebar.radio(
 # =========================
 if menu == "🤖 AI Tutor":
 
-    st.subheader("Ask Anything")
+    st.subheader("Ask Your Topic")
 
-    q = st.text_input("Enter question")
-    level = st.selectbox("Difficulty Level", ["Beginner", "Intermediate", "Advanced"])
+    topic = st.text_input("Enter topic (e.g., Quick Sort, DBMS, OS)")
 
-    if st.button("Get Answer"):
-        if q:
-            st.success(ai_tutor(q, level))
-            st.session_state.history.append(q)
+    if st.button("Generate Explanation"):
+        if topic:
+            st.info(ai_tutor(topic))
+            st.session_state.history.append(topic)
 
-    st.write("Recent Questions:")
+    st.write("Recent Topics:")
     st.write(st.session_state.history[-5:])
 
 # =========================
-# 📝 QUIZ (FULL FIXED)
+# 📝 QUIZ (FIXED + MEDIUM LEVEL)
 # =========================
 elif menu == "📝 Quiz":
 
-    st.subheader("Smart Quiz Engine")
+    st.subheader("MCQ Quiz System (Medium Level)")
 
-    topic = st.text_input("Enter topic")
+    topic = st.text_input("Enter topic for quiz")
 
     if st.button("Start Quiz") and topic:
         st.session_state.quiz = generate_quiz(topic)
@@ -189,16 +169,13 @@ elif menu == "📝 Quiz":
 
             st.markdown(f"### Q{i+1}: {qdata['q']}")
 
-            # FIX: unique key per question
-            key = f"q_{i}"
-
             answer = st.radio(
-                "Choose answer",
+                "Choose correct answer",
                 qdata["options"],
-                key=key
+                key=f"q_{i}"
             )
 
-            if st.button("Next"):
+            if st.button("Next Question"):
 
                 if answer == qdata["ans"]:
                     st.session_state.score += 1
@@ -207,73 +184,42 @@ elif menu == "📝 Quiz":
                 st.rerun()
 
         else:
-            st.success(f"Final Score: {st.session_state.score}/5")
+            st.success(f"🎯 Final Score: {st.session_state.score}/5")
 
-            if st.button("Restart"):
+            if st.button("Restart Quiz"):
                 st.session_state.started = False
                 st.session_state.q_index = 0
                 st.session_state.score = 0
                 st.rerun()
 
 # =========================
-# 🎥 YOUTUBE LEARNING (UPGRADED)
+# 📊 VISUAL LEARNING (FLOWCHART ONLY)
 # =========================
-elif menu == "🎥 YouTube Learning":
+elif menu == "📊 Visual Learning":
 
-    st.subheader("YouTube AI Learning System")
+    st.subheader("Concept Visualization")
 
-    url = st.text_input("Paste YouTube URL")
+    topic = st.text_input("Enter topic for visualization")
 
-    topic = st.text_input("Topic for visualization")
+    if st.button("Generate Flowchart"):
 
-    if st.button("Generate Learning"):
+        if topic:
 
-        if url:
+            st.markdown("### 🔁 Concept Flow")
 
-            try:
-                vid = get_video_id(url)
-                transcript = fetch_transcript(vid)
+            dot = graphviz.Digraph()
 
-                st.markdown("### 📄 AI Summary")
-                st.info(summarize(transcript))
+            dot.node("A", topic)
+            dot.node("B", "Definition")
+            dot.node("C", "Working Mechanism")
+            dot.node("D", "Applications")
+            dot.node("E", "Complexity Analysis")
 
-                st.markdown("### 🧠 Key Learning Points")
-                st.write([
-                    "Understand concept flow",
-                    "Focus on real-world usage",
-                    "Practice with examples"
-                ])
+            dot.edges([
+                ("A", "B"),
+                ("A", "C"),
+                ("C", "D"),
+                ("C", "E")
+            ])
 
-                st.markdown("### 🖼️ Visual Learning")
-                for img in get_images(topic):
-                    st.image(img)
-
-                st.markdown("### 🔁 Flowchart")
-
-                dot = graphviz.Digraph()
-                dot.node("A", topic)
-                dot.node("B", "Definition")
-                dot.node("C", "Working")
-                dot.node("D", "Applications")
-
-                dot.edges(["AB", "AC", "AD"])
-
-                st.graphviz_chart(dot)
-
-            except:
-                st.error("Transcript not available for this video.")
-
-# =========================
-# 📊 INSIGHTS DASHBOARD
-# =========================
-elif menu == "📊 Insights":
-
-    st.subheader("Learning Analytics")
-
-    st.metric("Quiz Score", st.session_state.score)
-    st.metric("Questions Asked", len(st.session_state.history))
-
-    st.progress(min(st.session_state.q_index / 5, 1.0))
-
-    st.write("Recent Activity")
-    st.write(st.session_state.history[-10:])
+            st.graphviz_chart(dot)
