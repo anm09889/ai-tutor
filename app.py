@@ -4,10 +4,10 @@ import graphviz
 from transformers import pipeline
 
 # =========================
-# PAGE CONFIG
+# APP CONFIG
 # =========================
 st.set_page_config(
-    page_title="College AI Tutor",
+    page_title="AI EdTech Platform",
     page_icon="🎓",
     layout="wide"
 )
@@ -16,17 +16,17 @@ st.set_page_config(
 # LOAD AI MODEL
 # =========================
 @st.cache_resource
-def load_ai():
+def load_model():
     return pipeline("text-generation", model="gpt2")
 
-ai = load_ai()
+ai = load_model()
 
 # =========================
-# UI HEADER
+# HEADER
 # =========================
 st.markdown("""
-    <h1 style='text-align:center; color:#4F8BF9;'>🎓 College AI Tutor</h1>
-    <p style='text-align:center; color:gray;'>DSA • DBMS • OS • CN • AI Learning System</p>
+<h1 style='text-align:center; color:#4F8BF9;'>🎓 AI EdTech Platform</h1>
+<p style='text-align:center; color:gray;'>Tutor • Exam • Interview • Analytics • Concept Mapping</p>
 """, unsafe_allow_html=True)
 
 # =========================
@@ -37,21 +37,21 @@ for key in ["score", "q_index", "quiz", "started", "history"]:
         st.session_state[key] = [] if key == "history" else 0 if key in ["score","q_index"] else False if key=="started" else []
 
 # =========================
-# 🧠 AI EXPLANATION ENGINE
+# AI ENGINE
 # =========================
-def explain_topic(topic, mode):
+def ai_response(topic, mode):
 
     prompt = f"""
-Explain {topic} for college students.
+Explain {topic} for students.
 
 Mode: {mode}
 
 Include:
 - Definition
 - Working
-- Real-world use cases
-- Exam importance
-- Key points
+- Real-world use
+- Interview importance
+- Exam answer format
 """
 
     result = ai(prompt, max_length=220, do_sample=True)[0]["generated_text"]
@@ -59,88 +59,97 @@ Include:
     return result
 
 # =========================
-# 📝 SMART QUIZ GENERATOR
+# EXAM QUESTIONS (MEDIUM LEVEL)
 # =========================
-def generate_options(correct):
-
-    base = [
-        "Stack based approach",
-        "Queue mechanism",
-        "Hashing technique",
-        "Recursive strategy",
-        "Greedy method",
-        "Divide and Conquer",
-        "Dynamic Programming"
-    ]
-
-    base = list(set(base + [correct]))
-    random.shuffle(base)
-
-    return base[:4]
-
-
 def generate_quiz(topic):
 
     return [
         {
-            "q": f"Which best describes {topic}?",
-            "ans": "Problem Solving Technique",
-            "options": generate_options("Problem Solving Technique")
+            "q": f"What is the core idea of {topic}?",
+            "options": [
+                "Efficient problem solving",
+                "Random execution",
+                "Visual design",
+                "Hardware optimization"
+            ],
+            "ans": "Efficient problem solving"
         },
         {
-            "q": f"What is main idea of {topic}?",
-            "ans": "Efficient Computation",
-            "options": generate_options("Efficient Computation")
+            "q": f"{topic} is mainly used in?",
+            "options": [
+                "Algorithms & Data Structures",
+                "Graphic Design",
+                "Video Editing",
+                "Networking hardware"
+            ],
+            "ans": "Algorithms & Data Structures"
         },
         {
-            "q": f"{topic} is used in which field?",
-            "ans": "Computer Science",
-            "options": generate_options("Computer Science")
-        },
-        {
-            "q": f"Key factor in {topic}?",
-            "ans": "Time Complexity",
-            "options": generate_options("Time Complexity")
+            "q": f"Key factor in analyzing {topic}?",
+            "options": [
+                "Time and Space Complexity",
+                "Color grading",
+                "Audio frequency",
+                "Image resolution"
+            ],
+            "ans": "Time and Space Complexity"
         },
         {
             "q": f"{topic} improves which system property?",
-            "ans": "Performance",
-            "options": generate_options("Performance")
+            "options": [
+                "Performance",
+                "Decoration",
+                "Sound",
+                "Brightness"
+            ],
+            "ans": "Performance"
+        },
+        {
+            "q": f"{topic} is related to?",
+            "options": [
+                "Logical reasoning",
+                "Painting",
+                "Music",
+                "Animation"
+            ],
+            "ans": "Logical reasoning"
         }
     ]
 
 # =========================
-# SIDEBAR MENU
+# SIDEBAR NAVIGATION
 # =========================
 menu = st.sidebar.radio(
     "📌 Navigation",
-    ["🤖 AI Tutor", "📝 Exam Mode", "📊 Learning Path"]
+    ["🤖 AI Tutor", "📝 Exam Mode", "🎯 Interview Mode", "🔁 Concept Map", "📊 Analytics"]
 )
 
 # =========================
-# 🤖 AI TUTOR
+# 🤖 AI TUTOR MODULE
 # =========================
 if menu == "🤖 AI Tutor":
 
-    st.subheader("Smart Explanation System")
+    st.subheader("Smart AI Tutor Engine")
 
-    topic = st.text_input("Enter topic (DSA / OS / DBMS / CN)")
+    topic = st.text_input("Enter topic (DSA, OS, DBMS, CN, AI)")
 
-    mode = st.selectbox("Learning Mode", ["Beginner", "Exam", "Interview"])
+    mode = st.selectbox("Mode", ["Beginner", "Intermediate", "Advanced", "Interview", "Exam Answer"])
 
     if st.button("Generate Explanation"):
 
         if topic:
             st.session_state.history.append(topic)
+            st.success(ai_response(topic, mode))
 
-            st.success(explain_topic(topic, mode))
+    st.write("Recent Topics:")
+    st.write(st.session_state.history[-5:])
 
 # =========================
 # 📝 EXAM MODE
 # =========================
 elif menu == "📝 Exam Mode":
 
-    st.subheader("College-Level MCQ Exam")
+    st.subheader("College-Level MCQ Exam System")
 
     topic = st.text_input("Enter topic")
 
@@ -162,12 +171,12 @@ elif menu == "📝 Exam Mode":
             st.markdown(f"### Q{i+1}: {q['q']}")
 
             answer = st.radio(
-                "Choose answer",
+                "Select answer",
                 q["options"],
                 key=f"q_{i}"
             )
 
-            if st.button("Next Question"):
+            if st.button("Next"):
 
                 if answer == q["ans"]:
                     st.session_state.score += 1
@@ -177,7 +186,6 @@ elif menu == "📝 Exam Mode":
 
         else:
             st.success(f"🎯 Final Score: {st.session_state.score}/5")
-
             st.progress(st.session_state.score / 5)
 
             if st.button("Restart Exam"):
@@ -185,26 +193,40 @@ elif menu == "📝 Exam Mode":
                 st.rerun()
 
 # =========================
-# 📊 LEARNING PATH VISUALIZER
+# 🎯 INTERVIEW MODE
 # =========================
-elif menu == "📊 Learning Path":
+elif menu == "🎯 Interview Mode":
 
-    st.subheader("Concept Understanding Flow")
+    st.subheader("Interview Preparation Mode")
 
     topic = st.text_input("Enter topic")
 
-    if st.button("Generate Path"):
+    if st.button("Generate Interview Answer"):
+
+        if topic:
+            st.info(ai_response(topic, "Interview"))
+
+# =========================
+# 🔁 CONCEPT MAP
+# =========================
+elif menu == "🔁 Concept Map":
+
+    st.subheader("Concept Relationship Graph")
+
+    topic = st.text_input("Enter topic")
+
+    if st.button("Generate Map"):
 
         if topic:
 
             dot = graphviz.Digraph()
 
             dot.node("A", topic)
-            dot.node("B", "Definition")
-            dot.node("C", "Working")
+            dot.node("B", "Core Idea")
+            dot.node("C", "Working Principle")
             dot.node("D", "Applications")
-            dot.node("E", "Complexity Analysis")
-            dot.node("F", "Interview Importance")
+            dot.node("E", "Complexity / Importance")
+            dot.node("F", "Related Concepts")
 
             dot.edges([
                 ("A","B"),
@@ -216,4 +238,17 @@ elif menu == "📊 Learning Path":
 
             st.graphviz_chart(dot)
 
-    st.info("Use this to understand how concepts connect in real exams and interviews.")
+# =========================
+# 📊 ANALYTICS
+# =========================
+elif menu == "📊 Analytics":
+
+    st.subheader("Student Learning Analytics")
+
+    st.metric("Topics Studied", len(st.session_state.history))
+    st.metric("Last Score", st.session_state.score)
+
+    st.progress(min(st.session_state.q_index / 5, 1.0))
+
+    st.write("Recent Topics:")
+    st.write(st.session_state.history[-10:])
