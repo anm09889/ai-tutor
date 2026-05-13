@@ -1,73 +1,111 @@
 import streamlit as st
+from transformers import pipeline
 import random
 
-st.set_page_config(page_title="AI Quiz Tutor", layout="wide")
+# =========================
+# PAGE CONFIG
+# =========================
+st.set_page_config(page_title="AI Tutor", layout="wide")
 
 # =========================
-# QUIZ DATABASE (10+ QUESTIONS EACH)
+# LOAD MODEL (NO API KEY)
 # =========================
-quiz_data = {
-    "sorting": [
-        {"question": "Time complexity of Merge Sort?", "options": ["O(n²)", "O(n log n)", "O(n)", "O(log n)"], "answer": "O(n log n)"},
-        {"question": "Quick Sort worst case?", "options": ["O(n²)", "O(n)", "O(log n)", "O(n log n)"], "answer": "O(n²)"},
-        {"question": "Which is stable?", "options": ["Quick Sort", "Merge Sort", "Heap Sort", "Selection Sort"], "answer": "Merge Sort"},
-        {"question": "Which is divide and conquer?", "options": ["Bubble Sort", "Merge Sort", "Insertion Sort", "Linear Search"], "answer": "Merge Sort"},
-        {"question": "Best case Quick Sort?", "options": ["O(n log n)", "O(n²)", "O(n)", "O(log n)"], "answer": "O(n log n)"},
-        {"question": "Heap Sort complexity?", "options": ["O(n log n)", "O(n²)", "O(n)", "O(log n)"], "answer": "O(n log n)"},
-        {"question": "Bubble sort best case?", "options": ["O(n)", "O(n²)", "O(log n)", "O(n log n)"], "answer": "O(n)"},
-        {"question": "Insertion sort worst case?", "options": ["O(n²)", "O(n)", "O(log n)", "O(n log n)"], "answer": "O(n²)"},
-        {"question": "Which is in-place?", "options": ["Merge Sort", "Quick Sort", "Counting Sort", "Radix Sort"], "answer": "Quick Sort"},
-        {"question": "Which uses recursion?", "options": ["Merge Sort", "Queue", "Stack", "Array"], "answer": "Merge Sort"},
+@st.cache_resource
+def load_model():
+    return pipeline("text-generation", model="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
+
+generator = load_model()
+
+# =========================
+# QUIZ DATA
+# =========================
+quiz_bank = {
+    "Sorting": [
+        {
+            "question": "Time complexity of Merge Sort?",
+            "options": ["O(n²)", "O(n log n)", "O(n)", "O(log n)"],
+            "answer": "O(n log n)"
+        },
+        {
+            "question": "Which is divide and conquer?",
+            "options": ["Bubble Sort", "Merge Sort", "Stack", "Queue"],
+            "answer": "Merge Sort"
+        }
     ],
-
-    "searching": [
-        {"question": "Binary search works on?", "options": ["Unsorted array", "Sorted array", "Graph", "Tree"], "answer": "Sorted array"},
-        {"question": "Linear search complexity?", "options": ["O(n)", "O(log n)", "O(n²)", "O(1)"], "answer": "O(n)"},
-        {"question": "Binary search complexity?", "options": ["O(log n)", "O(n)", "O(n²)", "O(1)"], "answer": "O(log n)"},
-        {"question": "Best case linear search?", "options": ["O(1)", "O(n)", "O(log n)", "O(n²)"], "answer": "O(1)"},
-        {"question": "Binary search uses?", "options": ["Divide and conquer", "Greedy", "DP", "Backtracking"], "answer": "Divide and conquer"},
-        {"question": "Which is faster?", "options": ["Linear", "Binary", "DFS", "BFS"], "answer": "Binary"},
-        {"question": "Binary search needs?", "options": ["Sorted array", "Tree", "Graph", "Stack"], "answer": "Sorted array"},
-        {"question": "Worst case binary search?", "options": ["O(log n)", "O(n)", "O(n²)", "O(1)"], "answer": "O(log n)"},
-        {"question": "Linear search works on?", "options": ["Any array", "Sorted only", "Graph", "Tree"], "answer": "Any array"},
-        {"question": "Binary search compares?", "options": ["Middle element", "First element", "Last element", "Random"], "answer": "Middle element"},
+    "Searching": [
+        {
+            "question": "Binary search works on?",
+            "options": ["Unsorted array", "Sorted array", "Graph", "Tree"],
+            "answer": "Sorted array"
+        },
+        {
+            "question": "Worst case of linear search?",
+            "options": ["O(1)", "O(n)", "O(log n)", "O(n²)"],
+            "answer": "O(n)"
+        }
     ]
 }
 
 # =========================
-# UI
+# AI FUNCTION
 # =========================
-st.title("🎓 AI Quiz Tutor (Topic Based)")
+def get_answer(question):
+    prompt = f"""
+You are a DAA expert tutor.
 
-topic = st.text_input("Enter Topic (sorting / searching)")
+Explain clearly:
+- Definition
+- Steps
+- Example
+- Complexity
 
-if st.button("Start Quiz"):
+Question: {question}
+Answer:
+"""
 
-    if topic.lower() not in quiz_data:
-        st.error("Topic not found!")
-    else:
-        questions = random.sample(quiz_data[topic.lower()], 10)
+    result = generator(
+        prompt,
+        max_new_tokens=200,
+        temperature=0.7,
+        do_sample=True,
+        repetition_penalty=1.2
+    )
 
-        score = 0
-        user_answers = []
+    return result[0]["generated_text"].replace(prompt, "")
 
-        for i, q in enumerate(questions):
-            st.subheader(f"Q{i+1}: {q['question']}")
-            choice = st.radio(f"Select answer {i+1}", q["options"], key=i)
+# =========================
+# UI DESIGN
+# =========================
+st.title("🎓 AI DAA Tutor (No API Key)")
 
-            user_answers.append(choice)
+tab1, tab2 = st.tabs(["💬 AI Chat", "📝 Quiz"])
 
-        if st.button("Submit Quiz"):
+# =========================
+# CHAT SECTION
+# =========================
+with tab1:
+    q = st.text_input("Ask your question")
 
-            for i, q in enumerate(questions):
-                if user_answers[i] == q["answer"]:
-                    score += 1
+    if st.button("Get Answer"):
+        if q:
+            st.write(get_answer(q))
+        else:
+            st.warning("Enter a question first")
 
-            st.success(f"Your Score: {score}/10")
+# =========================
+# QUIZ SECTION
+# =========================
+with tab2:
+    topic = st.selectbox("Choose Topic", list(quiz_bank.keys()))
 
-            st.write("### Review")
-            for i, q in enumerate(questions):
-                st.write(f"Q{i+1}: {q['question']}")
-                st.write(f"✔ Correct: {q['answer']}")
-                st.write(f"❌ Your Answer: {user_answers[i]}")
-                st.write("---")
+    quiz = random.choice(quiz_bank[topic])
+
+    st.subheader(quiz["question"])
+
+    choice = st.radio("Options", quiz["options"])
+
+    if st.button("Submit"):
+        if choice == quiz["answer"]:
+            st.success("Correct ✅")
+        else:
+            st.error(f"Wrong ❌ Correct answer: {quiz['answer']}")
