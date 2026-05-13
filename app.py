@@ -1,13 +1,12 @@
 import streamlit as st
 import random
 import time
-import requests
 from collections import Counter
 from youtube_transcript_api import YouTubeTranscriptApi
 import graphviz
 
 # =========================
-# PAGE CONFIG (MODERN UI)
+# PAGE CONFIG
 # =========================
 st.set_page_config(
     page_title="AI Tutor Pro",
@@ -16,65 +15,64 @@ st.set_page_config(
 )
 
 # =========================
-# MODERN UI STYLE
+# UI STYLE
 # =========================
 st.markdown("""
 <style>
-    .main-title {
-        font-size: 40px;
-        font-weight: 800;
-        text-align: center;
-        color: #4F8BF9;
-    }
+.main-title {
+    font-size: 42px;
+    font-weight: 800;
+    text-align: center;
+    color: #4F8BF9;
+}
 
-    .sub-text {
-        text-align: center;
-        font-size: 18px;
-        color: gray;
-        margin-bottom: 20px;
-    }
-
-    .card {
-        background-color: #111827;
-        padding: 20px;
-        border-radius: 15px;
-        margin-bottom: 15px;
-        color: white;
-    }
+.card {
+    background: #111827;
+    padding: 18px;
+    border-radius: 15px;
+    color: white;
+    margin-bottom: 15px;
+}
 </style>
 """, unsafe_allow_html=True)
 
-# =========================
-# HEADER
-# =========================
-st.markdown('<div class="main-title">🎓 AI Tutor Pro</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-text">Smart Learning • Quiz • YouTube AI Summary • Visual Learning</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">🎓 AI Tutor Pro Max</div>', unsafe_allow_html=True)
 
 # =========================
-# SIMPLE AI TUTOR
+# SESSION STATE
 # =========================
-def ai_tutor(question):
+for key in ["score", "q_index", "quiz", "started", "history"]:
+    if key not in st.session_state:
+        st.session_state[key] = 0 if key == "score" or key == "q_index" else [] if key == "history" else False if key == "started" else []
+
+# =========================
+# AI TUTOR (IMPROVED)
+# =========================
+def ai_tutor(question, level="Beginner"):
+
     return f"""
-📘 ANSWER:
-{question}
+📘 QUESTION: {question}
 
-✔ Definition:
-A core Computer Science concept.
+🧠 Level: {level}
 
 ✔ Explanation:
-Used in solving structured problems efficiently.
+This is a core Computer Science concept used in problem solving.
 
-✔ Example:
-Used in algorithms, databases, AI systems.
+✔ Real-world Use:
+Search engines, AI systems, databases, apps.
 
 ✔ Key Idea:
-Focus on logic and optimization.
+Understand logic + structure.
+
+✔ Tip:
+Practice examples instead of memorizing.
 """
 
 # =========================
-# QUIZ SYSTEM (FIXED)
+# QUIZ GENERATOR (FIXED + BETTER)
 # =========================
 def generate_quiz(topic):
+
     return [
         {
             "q": f"What is {topic}?",
@@ -83,28 +81,28 @@ def generate_quiz(topic):
         },
         {
             "q": f"Where is {topic} used?",
-            "options": ["Web", "Algorithms", "Music", "Games"],
-            "ans": "Algorithms"
+            "options": ["AI", "Cooking", "Sports", "Music"],
+            "ans": "AI"
         },
         {
             "q": f"Why is {topic} important?",
-            "options": ["Efficiency", "Style", "Speed", "Color"],
+            "options": ["Efficiency", "Decoration", "Noise", "Color"],
             "ans": "Efficiency"
         },
         {
-            "q": f"{topic} belongs to which field?",
-            "options": ["CS", "Biology", "Physics", "Art"],
-            "ans": "CS"
+            "q": f"{topic} belongs to?",
+            "options": ["Computer Science", "Biology", "Physics", "Art"],
+            "ans": "Computer Science"
         },
         {
             "q": f"Main purpose of {topic}?",
-            "options": ["Problem Solving", "Painting", "Cooking", "Sports"],
+            "options": ["Problem Solving", "Painting", "Gaming", "Cooking"],
             "ans": "Problem Solving"
         }
     ]
 
 # =========================
-# YOUTUBE HELPERS (FIXED)
+# YOUTUBE HELPERS
 # =========================
 def get_video_id(url):
     if "v=" in url:
@@ -115,7 +113,7 @@ def fetch_transcript(video_id):
     transcript = YouTubeTranscriptApi.get_transcript(video_id)
     return " ".join([t["text"] for t in transcript])
 
-def summarize_text(text):
+def summarize(text):
     words = text.lower().split()
     freq = Counter(words)
 
@@ -127,7 +125,7 @@ def summarize_text(text):
         scored.append((score, s))
 
     scored.sort(reverse=True)
-    return ". ".join([s for _, s in scored[:4]])
+    return ". ".join([s for _, s in scored[:5]])
 
 # =========================
 # IMAGES
@@ -135,28 +133,16 @@ def summarize_text(text):
 def get_images(topic):
     return [
         f"https://source.unsplash.com/800x400/?{topic}",
-        f"https://source.unsplash.com/800x400/?{topic},computer",
-        f"https://source.unsplash.com/800x400/?{topic},technology"
+        f"https://source.unsplash.com/800x400/?{topic},technology",
+        f"https://source.unsplash.com/800x400/?{topic},computer"
     ]
-
-# =========================
-# SESSION STATE
-# =========================
-if "score" not in st.session_state:
-    st.session_state.score = 0
-if "q_index" not in st.session_state:
-    st.session_state.q_index = 0
-if "quiz" not in st.session_state:
-    st.session_state.quiz = []
-if "started" not in st.session_state:
-    st.session_state.started = False
 
 # =========================
 # SIDEBAR
 # =========================
 menu = st.sidebar.radio(
     "📌 Navigation",
-    ["🤖 AI Tutor", "📝 Quiz", "🎥 YouTube Learning", "📊 Dashboard"]
+    ["🤖 AI Tutor", "📝 Quiz", "🎥 YouTube Learning", "📊 Insights"]
 )
 
 # =========================
@@ -166,27 +152,31 @@ if menu == "🤖 AI Tutor":
 
     st.subheader("Ask Anything")
 
-    q = st.text_input("Enter your question")
+    q = st.text_input("Enter question")
+    level = st.selectbox("Difficulty Level", ["Beginner", "Intermediate", "Advanced"])
 
     if st.button("Get Answer"):
         if q:
-            st.success(ai_tutor(q))
+            st.success(ai_tutor(q, level))
+            st.session_state.history.append(q)
+
+    st.write("Recent Questions:")
+    st.write(st.session_state.history[-5:])
 
 # =========================
-# 📝 QUIZ (FIXED OPTIONS)
+# 📝 QUIZ (FULL FIXED)
 # =========================
 elif menu == "📝 Quiz":
 
-    st.subheader("Smart Quiz System")
+    st.subheader("Smart Quiz Engine")
 
     topic = st.text_input("Enter topic")
 
-    if st.button("Start Quiz"):
-        if topic:
-            st.session_state.quiz = generate_quiz(topic)
-            st.session_state.q_index = 0
-            st.session_state.score = 0
-            st.session_state.started = True
+    if st.button("Start Quiz") and topic:
+        st.session_state.quiz = generate_quiz(topic)
+        st.session_state.q_index = 0
+        st.session_state.score = 0
+        st.session_state.started = True
 
     if st.session_state.started:
 
@@ -199,9 +189,16 @@ elif menu == "📝 Quiz":
 
             st.markdown(f"### Q{i+1}: {qdata['q']}")
 
-            answer = st.radio("Choose answer", qdata["options"], key=i)
+            # FIX: unique key per question
+            key = f"q_{i}"
 
-            if st.button("Next Question"):
+            answer = st.radio(
+                "Choose answer",
+                qdata["options"],
+                key=key
+            )
+
+            if st.button("Next"):
 
                 if answer == qdata["ans"]:
                     st.session_state.score += 1
@@ -212,33 +209,40 @@ elif menu == "📝 Quiz":
         else:
             st.success(f"Final Score: {st.session_state.score}/5")
 
-            if st.button("Restart Quiz"):
+            if st.button("Restart"):
                 st.session_state.started = False
+                st.session_state.q_index = 0
+                st.session_state.score = 0
                 st.rerun()
 
 # =========================
-# 🎥 YOUTUBE (FIXED SINGLE INPUT)
+# 🎥 YOUTUBE LEARNING (UPGRADED)
 # =========================
 elif menu == "🎥 YouTube Learning":
 
-    st.subheader("YouTube AI Learning Hub")
+    st.subheader("YouTube AI Learning System")
 
-    url = st.text_input("Paste YouTube URL here")
+    url = st.text_input("Paste YouTube URL")
 
-    topic = st.text_input("Topic for visuals")
+    topic = st.text_input("Topic for visualization")
 
-    if st.button("Generate Learning Content"):
+    if st.button("Generate Learning"):
 
         if url:
 
-            video_id = get_video_id(url)
-
             try:
-                transcript = fetch_transcript(video_id)
-                summary = summarize_text(transcript)
+                vid = get_video_id(url)
+                transcript = fetch_transcript(vid)
 
                 st.markdown("### 📄 AI Summary")
-                st.info(summary)
+                st.info(summarize(transcript))
+
+                st.markdown("### 🧠 Key Learning Points")
+                st.write([
+                    "Understand concept flow",
+                    "Focus on real-world usage",
+                    "Practice with examples"
+                ])
 
                 st.markdown("### 🖼️ Visual Learning")
                 for img in get_images(topic):
@@ -250,7 +254,7 @@ elif menu == "🎥 YouTube Learning":
                 dot.node("A", topic)
                 dot.node("B", "Definition")
                 dot.node("C", "Working")
-                dot.node("D", "Use Cases")
+                dot.node("D", "Applications")
 
                 dot.edges(["AB", "AC", "AD"])
 
@@ -260,13 +264,16 @@ elif menu == "🎥 YouTube Learning":
                 st.error("Transcript not available for this video.")
 
 # =========================
-# 📊 DASHBOARD
+# 📊 INSIGHTS DASHBOARD
 # =========================
-elif menu == "📊 Dashboard":
+elif menu == "📊 Insights":
 
-    st.subheader("Student Analytics")
+    st.subheader("Learning Analytics")
 
     st.metric("Quiz Score", st.session_state.score)
-    st.metric("Quiz Progress", f"{st.session_state.q_index}/5")
+    st.metric("Questions Asked", len(st.session_state.history))
 
-    st.progress(st.session_state.q_index / 5 if st.session_state.started else 0)
+    st.progress(min(st.session_state.q_index / 5, 1.0))
+
+    st.write("Recent Activity")
+    st.write(st.session_state.history[-10:])
