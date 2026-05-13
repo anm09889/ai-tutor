@@ -1,88 +1,177 @@
 import streamlit as st
-
-st.set_page_config(page_title="AI Tutor ChatGPT Style", layout="wide")
-
-# =========================
-# SESSION STATE (CHAT MEMORY)
-# =========================
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+import random
+import time
 
 # =========================
-# SIMPLE AI RESPONSE (YOU CAN REPLACE WITH GEMINI/HF)
+# PAGE CONFIG
 # =========================
-def get_response(user_input):
-    return f"🤖 AI Tutor: I understand '{user_input}'. Here is a simple explanation... (you can connect real AI model here)"
+st.set_page_config(
+    page_title="AI Tutor Pro",
+    page_icon="🎓",
+    layout="wide"
+)
+
+# =========================
+# SIMPLE FAST AI (NO SLOW MODEL)
+# =========================
+def ai_tutor(question):
+    return f"""
+📘 ANSWER:
+
+{question}
+
+✔ Definition:
+This is an important concept in Computer Science.
+
+✔ Explanation:
+It is used to solve problems efficiently by breaking them into steps.
+
+✔ Example:
+Used in algorithms, apps, search engines, and AI systems.
+
+✔ Key Idea:
+Focus on optimization and structured thinking.
+
+✔ Tip:
+Always understand the logic, not just memorization.
+"""
+
+# =========================
+# QUIZ GENERATOR
+# =========================
+def generate_quiz(topic):
+    return [
+        (f"What is {topic}?", "Concept"),
+        (f"Where is {topic} used?", "Algorithms"),
+        (f"Why is {topic} important?", "Efficiency"),
+        (f"Explain {topic} in simple terms", "Steps"),
+        (f"{topic} belongs to which field?", "CS")
+    ]
+
+# =========================
+# SESSION STATE
+# =========================
+if "score" not in st.session_state:
+    st.session_state.score = 0
+if "q_index" not in st.session_state:
+    st.session_state.q_index = 0
+if "quiz" not in st.session_state:
+    st.session_state.quiz = []
+if "started" not in st.session_state:
+    st.session_state.started = False
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 # =========================
 # SIDEBAR MENU
 # =========================
-menu = st.sidebar.radio("Menu", ["💬 AI Tutor", "📝 Quiz", "📊 Analysis"])
+menu = st.sidebar.radio("📌 MENU", ["🤖 AI Tutor", "📝 Quiz", "🧰 Tools", "📊 Analysis"])
 
 # =========================
-# 💬 CHATGPT STYLE TUTOR
+# 🤖 AI TUTOR SECTION
 # =========================
-if menu == "💬 AI Tutor":
+if menu == "🤖 AI Tutor":
 
-    st.title("💬 AI Tutor (ChatGPT Style)")
+    st.title("🎓 AI Tutor Pro")
 
-    # DISPLAY CHAT HISTORY
-    for msg in st.session_state.messages:
-        if msg["role"] == "user":
-            st.markdown(
-                f"<div style='text-align:right; background:#DCF8C6; padding:10px; border-radius:10px; margin:5px'>{msg['text']}</div>",
-                unsafe_allow_html=True
-            )
+    question = st.text_input("Ask your question")
+
+    if st.button("Get Answer"):
+        if question:
+            with st.spinner("Thinking..."):
+                time.sleep(0.5)
+                answer = ai_tutor(question)
+                st.success(answer)
+
+                st.session_state.history.append(question)
         else:
-            st.markdown(
-                f"<div style='text-align:left; background:#F1F0F0; padding:10px; border-radius:10px; margin:5px'>{msg['text']}</div>",
-                unsafe_allow_html=True
-            )
+            st.warning("Enter a question")
 
-    user_input = st.text_input("Type your message")
-
-    if st.button("Send"):
-        if user_input:
-
-            # save user message
-            st.session_state.messages.append({"role": "user", "text": user_input})
-
-            # get AI response
-            response = get_response(user_input)
-
-            st.session_state.messages.append({"role": "ai", "text": response})
-
-            st.rerun()
+    st.subheader("📌 Recent Questions")
+    st.write(st.session_state.history[-5:])
 
 # =========================
-# 📝 QUIZ SECTION (SIMPLE)
+# 📝 QUIZ SECTION
 # =========================
 elif menu == "📝 Quiz":
 
-    st.title("📝 Quiz Section")
+    st.title("📝 Smart Quiz System")
 
-    topic = st.text_input("Enter topic")
+    topic = st.text_input("Enter topic for quiz")
 
     if st.button("Start Quiz"):
+        if topic:
+            st.session_state.quiz = generate_quiz(topic)
+            st.session_state.q_index = 0
+            st.session_state.score = 0
+            st.session_state.started = True
 
-        questions = [
-            f"What is {topic}?",
-            f"Explain {topic} concept",
-            f"Where is {topic} used?",
-            f"Advantages of {topic}?",
-            f"Complexity of {topic}?"
-        ]
+    if st.session_state.started:
 
-        score = 0
+        q_data = st.session_state.quiz
+        i = st.session_state.q_index
 
-        for i, q in enumerate(questions):
-            st.write(q)
-            ans = st.radio(f"Answer {i+1}", ["A", "B", "C", "D"], key=i)
+        if i < len(q_data):
 
-            if ans:
-                score += 1
+            q, correct = q_data[i]
 
-        st.success(f"Score: {score}/5")
+            st.subheader(f"Q{i+1}: {q}")
+
+            options = ["Concept", "Algorithms", "Efficiency", "Steps"]
+            answer = st.radio("Choose answer", options, key=i)
+
+            if st.button("Next"):
+
+                if answer == correct:
+                    st.session_state.score += 1
+
+                st.session_state.q_index += 1
+                st.rerun()
+
+        else:
+            st.success(f"🎉 Final Score: {st.session_state.score}/5")
+
+            if st.button("Restart Quiz"):
+                st.session_state.started = False
+                st.session_state.q_index = 0
+                st.session_state.score = 0
+                st.rerun()
+
+# =========================
+# 🧰 TOOLS SECTION
+# =========================
+elif menu == "🧰 Tools":
+
+    st.title("🧰 Study Tools")
+
+    tool = st.selectbox("Choose Tool", [
+        "Quick Notes Maker",
+        "Study Timer",
+        "Simple Calculator"
+    ])
+
+    if tool == "Quick Notes Maker":
+        text = st.text_area("Write topic")
+        if st.button("Generate Notes"):
+            st.info(f"📘 Summary:\n\n{text} is an important CS concept used in problem solving.")
+
+    elif tool == "Study Timer":
+        minutes = st.number_input("Set minutes", 1, 60, 5)
+        if st.button("Start Timer"):
+            st.success(f"Timer started for {minutes} minutes (simulate)")
+
+    elif tool == "Simple Calculator":
+        a = st.number_input("A")
+        b = st.number_input("B")
+        op = st.selectbox("Operation", ["Add", "Subtract", "Multiply"])
+
+        if st.button("Calculate"):
+            if op == "Add":
+                st.success(a + b)
+            elif op == "Subtract":
+                st.success(a - b)
+            else:
+                st.success(a * b)
 
 # =========================
 # 📊 ANALYSIS SECTION
@@ -91,4 +180,8 @@ elif menu == "📊 Analysis":
 
     st.title("📊 Student Analysis")
 
-    st.info("Upgrade coming: connect quiz + AI tracking system")
+    st.metric("Total Questions Asked", len(st.session_state.history))
+    st.metric("Quiz Score", st.session_state.score)
+
+    st.write("Recent Activity:")
+    st.write(st.session_state.history[-10:])
