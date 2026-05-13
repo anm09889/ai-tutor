@@ -2,125 +2,205 @@ import streamlit as st
 import random
 
 # =========================
-# QUIZ DATA
+# PAGE CONFIG
+# =========================
+st.set_page_config(
+    page_title="AI Tutor Pro System",
+    page_icon="🎓",
+    layout="wide"
+)
+
+# =========================
+# SESSION STATE
+# =========================
+if "scores" not in st.session_state:
+    st.session_state.scores = []
+if "attempts" not in st.session_state:
+    st.session_state.attempts = 0
+
+# =========================
+# AI TUTOR (SIMPLE OFFLINE AI)
+# =========================
+def ai_response(question):
+    return f"""
+📘 Explanation of: {question}
+
+1. Definition:
+This is an important concept in computer science.
+
+2. Idea:
+It works by breaking problems into smaller parts.
+
+3. Example:
+Used in real-world systems like Google search, apps, and games.
+
+4. Complexity:
+Depends on the problem type (usually optimized using algorithms).
+
+5. Advantage:
+Improves efficiency and performance.
+
+6. Disadvantage:
+Can be complex for beginners.
+"""
+
+# =========================
+# QUIZ GENERATOR
 # =========================
 def generate_quiz(topic):
     return [
         {
             "question": f"What is {topic}?",
             "options": [
-                "Technique to solve problems",
-                "A sorting algorithm",
-                "A database type",
-                "A hardware device"
+                "Problem solving technique",
+                "Hardware device",
+                "Operating system",
+                "Network protocol"
             ],
-            "answer": "Technique to solve problems"
+            "answer": "Problem solving technique"
         },
         {
             "question": f"Where is {topic} used?",
             "options": [
-                "Problem solving",
+                "Algorithms",
                 "Only hardware",
-                "Only networks",
-                "Only OS"
+                "Only UI design",
+                "Only databases"
             ],
-            "answer": "Problem solving"
+            "answer": "Algorithms"
         },
         {
-            "question": f"What is main idea of {topic}?",
+            "question": f"Main idea of {topic}?",
             "options": [
-                "Break problem into subproblems",
-                "Delete data",
-                "Sort arrays",
-                "Encrypt files"
+                "Divide and solve problems",
+                "Store images",
+                "Print documents",
+                "Manage memory only"
             ],
-            "answer": "Break problem into subproblems"
+            "answer": "Divide and solve problems"
         },
         {
-            "question": f"{topic} improves what?",
+            "question": f"{topic} improves?",
             "options": [
                 "Efficiency",
-                "Hardware speed",
-                "Internet speed",
-                "Screen brightness"
+                "Screen brightness",
+                "Internet speed only",
+                "Keyboard input"
             ],
             "answer": "Efficiency"
         },
         {
-            "question": f"{topic} is mostly used in?",
+            "question": f"{topic} is related to?",
             "options": [
-                "Algorithms",
-                "Gaming only",
-                "Photoshop",
-                "Music apps"
+                "Computer science",
+                "Cooking",
+                "Music",
+                "Painting"
             ],
-            "answer": "Algorithms"
+            "answer": "Computer science"
         }
     ]
 
 # =========================
-# SESSION STATE INIT
+# SIDEBAR NAVIGATION
 # =========================
-if "quiz" not in st.session_state:
-    st.session_state.quiz = []
-    st.session_state.q_index = 0
-    st.session_state.score = 0
-    st.session_state.started = False
+menu = st.sidebar.radio(
+    "📌 MENU",
+    ["🤖 AI Tutor", "📝 Quiz", "📊 Analysis"]
+)
 
 # =========================
-# UI
+# 🤖 AI TUTOR SECTION
 # =========================
-st.title("📝 Smart Quiz System")
+if menu == "🤖 AI Tutor":
 
-topic = st.text_input("Enter topic for quiz")
+    st.title("🤖 AI Tutor Section")
+
+    question = st.text_input("Ask your question")
+
+    if st.button("Get Answer"):
+        if question:
+            st.success(ai_response(question))
+        else:
+            st.warning("Please enter a question")
 
 # =========================
-# START QUIZ
+# 📝 QUIZ SECTION
 # =========================
-if st.button("Start Quiz"):
+elif menu == "📝 Quiz":
 
-    if topic:
-        st.session_state.quiz = generate_quiz(topic)
+    st.title("📝 Quiz Section")
+
+    topic = st.text_input("Enter topic for quiz")
+
+    if "quiz" not in st.session_state:
+        st.session_state.quiz = []
         st.session_state.q_index = 0
         st.session_state.score = 0
-        st.session_state.started = True
-    else:
-        st.warning("Enter a topic")
+        st.session_state.started = False
 
-# =========================
-# QUIZ LOGIC
-# =========================
-if st.session_state.started:
-
-    quiz = st.session_state.quiz
-    i = st.session_state.q_index
-
-    if i < len(quiz):
-
-        q = quiz[i]
-
-        st.subheader(f"Q{i+1}: {q['question']}")
-
-        selected = st.radio(
-            "Choose your answer",
-            q["options"],
-            key=f"option_{i}"
-        )
-
-        if st.button("Next"):
-
-            if selected == q["answer"]:
-                st.session_state.score += 1
-
-            st.session_state.q_index += 1
-            st.rerun()
-
-    else:
-        st.success(f"🎉 Quiz Completed! Your Score: {st.session_state.score}/{len(quiz)}")
-
-        if st.button("Restart Quiz"):
-            st.session_state.started = False
+    if st.button("Start Quiz"):
+        if topic:
+            st.session_state.quiz = generate_quiz(topic.lower())
             st.session_state.q_index = 0
             st.session_state.score = 0
-            st.session_state.quiz = []
-            st.rerun()
+            st.session_state.started = True
+        else:
+            st.warning("Enter a topic")
+
+    if st.session_state.get("started", False):
+
+        quiz = st.session_state.quiz
+        i = st.session_state.q_index
+
+        if i < len(quiz):
+
+            q = quiz[i]
+
+            st.subheader(f"Q{i+1}: {q['question']}")
+
+            selected = st.radio(
+                "Choose answer",
+                q["options"],
+                key=f"q_{i}"
+            )
+
+            if st.button("Next"):
+
+                if selected == q["answer"]:
+                    st.session_state.score += 1
+
+                st.session_state.q_index += 1
+                st.rerun()
+
+        else:
+            st.success(f"🎉 Score: {st.session_state.score}/5")
+
+            st.session_state.scores.append(st.session_state.score)
+            st.session_state.attempts += 1
+
+            if st.button("Restart Quiz"):
+                st.session_state.started = False
+                st.session_state.q_index = 0
+                st.session_state.score = 0
+                st.session_state.quiz = []
+                st.rerun()
+
+# =========================
+# 📊 ANALYSIS SECTION
+# =========================
+elif menu == "📊 Analysis":
+
+    st.title("📊 Student Performance Analysis")
+
+    if st.session_state.attempts == 0:
+        st.info("No quiz attempts yet")
+    else:
+        avg = sum(st.session_state.scores) / len(st.session_state.scores)
+
+        st.metric("Total Attempts", st.session_state.attempts)
+        st.metric("Average Score", round(avg, 2))
+
+        st.line_chart(st.session_state.scores)
+
+        st.write("Score History:", st.session_state.scores)
