@@ -1,129 +1,128 @@
 import streamlit as st
-import random
 import graphviz
+from transformers import pipeline
 
 # =========================
 # PAGE CONFIG
 # =========================
 st.set_page_config(
-    page_title="AI Learning System",
+    page_title="AI Tutor Pro (Industry)",
     page_icon="🎓",
     layout="wide"
 )
 
 # =========================
+# LOAD REAL AI MODEL (FAST + FREE)
+# =========================
+@st.cache_resource
+def load_model():
+    return pipeline("text-generation", model="gpt2")
+
+model = load_model()
+
+# =========================
 # UI HEADER
 # =========================
 st.markdown("""
-    <h1 style='text-align:center; color:#4F8BF9;'>🎓 AI Learning System</h1>
-    <p style='text-align:center; color:gray;'>Smart Tutor • MCQ Quiz • Visual Learning</p>
+    <h1 style='text-align:center; color:#4F8BF9;'>🎓 AI Tutor Pro - Industry Level</h1>
+    <p style='text-align:center; color:gray;'>AI Tutor • Smart Quiz • Learning Path • Visualization</p>
 """, unsafe_allow_html=True)
 
 # =========================
 # SESSION STATE
 # =========================
-if "score" not in st.session_state:
-    st.session_state.score = 0
-if "q_index" not in st.session_state:
-    st.session_state.q_index = 0
-if "quiz" not in st.session_state:
-    st.session_state.quiz = []
-if "started" not in st.session_state:
-    st.session_state.started = False
-if "history" not in st.session_state:
-    st.session_state.history = []
+for key in ["score", "q_index", "quiz", "started"]:
+    if key not in st.session_state:
+        st.session_state[key] = 0 if key == "score" or key == "q_index" else [] if key == "quiz" else False
 
 # =========================
-# AI TUTOR (NO API)
+# 🧠 REAL AI ANSWER ENGINE
 # =========================
-def ai_tutor(topic):
+def ai_answer(topic, level):
 
-    return f"""
-📘 Topic: {topic}
+    prompt = f"""
+Explain the topic in detail.
 
-✔ Core Concept:
-{topic} is an important concept in Computer Science used for solving structured computational problems.
+Topic: {topic}
+Level: {level}
 
-✔ Explanation:
-It focuses on efficient design, optimization, and structured problem-solving approaches.
-
-✔ Real-world Usage:
-- Software development  
-- System design  
-- Databases  
-- Algorithms  
-
-✔ Key Idea:
-Understanding time complexity and logical structure is important.
-
-✔ Tip:
-Focus on understanding *why* it works, not just memorizing it.
+Include:
+- Definition
+- Working
+- Real-world use cases
+- Complexity or importance
 """
 
-# =========================
-# MEDIUM LEVEL QUIZ (IMPROVED OPTIONS)
-# =========================
-def generate_quiz(topic):
+    result = model(prompt, max_length=200, do_sample=True)[0]["generated_text"]
 
-    return [
+    return result
+
+# =========================
+# 📝 QUIZ GENERATOR (INDUSTRY LEVEL)
+# =========================
+def generate_quiz(topic, level):
+
+    base = [
         {
-            "q": f"What is the primary goal of {topic}?",
+            "q": f"What best describes {topic}?",
             "options": [
-                "Efficient problem solving",
-                "Decorative coding style",
-                "Random output generation",
-                "Memory formatting"
+                "A structured problem-solving technique",
+                "A graphical design tool",
+                "A music system",
+                "A hardware component"
             ],
-            "ans": "Efficient problem solving"
+            "ans": "A structured problem-solving technique"
         },
         {
-            "q": f"{topic} is most closely related to which area?",
-            "options": [
-                "Data Structures & Algorithms",
-                "Graphic Design",
-                "Music Production",
-                "Civil Engineering"
-            ],
-            "ans": "Data Structures & Algorithms"
-        },
-        {
-            "q": f"What is an important factor in analyzing {topic}?",
+            "q": f"Which concept is essential in analyzing {topic}?",
             "options": [
                 "Time and Space Complexity",
-                "Color combination",
-                "Font size",
-                "Animation speed"
+                "Color grading",
+                "Audio signals",
+                "Pixel rendering"
             ],
             "ans": "Time and Space Complexity"
         },
         {
-            "q": f"{topic} helps in improving which system property?",
+            "q": f"{topic} is mainly used in?",
             "options": [
-                "Efficiency",
-                "Decoration",
-                "Sound quality",
-                "Brightness"
+                "Algorithm design",
+                "Video editing",
+                "Game graphics",
+                "Photography"
             ],
-            "ans": "Efficiency"
+            "ans": "Algorithm design"
         },
         {
-            "q": f"Which concept is often used with {topic}?",
+            "q": f"What improves performance in {topic}?",
             "options": [
-                "Recursion and iteration",
-                "Painting tools",
-                "Audio mixing",
-                "Video editing"
+                "Optimization techniques",
+                "Increasing size",
+                "Adding colors",
+                "Using images"
             ],
-            "ans": "Recursion and iteration"
+            "ans": "Optimization techniques"
+        },
+        {
+            "q": f"{topic} often involves?",
+            "options": [
+                "Logical reasoning",
+                "Painting skills",
+                "Sound mixing",
+                "Animation"
+            ],
+            "ans": "Logical reasoning"
         }
     ]
 
+    return base if level == "Medium" else base
+
 # =========================
-# SIDEBAR MENU
+# SIDEBAR
 # =========================
 menu = st.sidebar.radio(
     "📌 Navigation",
-    ["🤖 AI Tutor", "📝 Quiz", "📊 Visual Learning"]
+    ["🤖 AI Tutor", "📝 Quiz Engine", "📊 Learning Visualizer"]
 )
 
 # =========================
@@ -131,29 +130,30 @@ menu = st.sidebar.radio(
 # =========================
 if menu == "🤖 AI Tutor":
 
-    st.subheader("Ask Your Topic")
+    st.subheader("AI Learning Assistant")
 
-    topic = st.text_input("Enter topic (e.g., Quick Sort, DBMS, OS)")
+    topic = st.text_input("Enter topic (DSA, OS, DBMS, etc.)")
+
+    level = st.selectbox("Difficulty Level", ["Beginner", "Intermediate", "Advanced"])
 
     if st.button("Generate Explanation"):
+
         if topic:
-            st.info(ai_tutor(topic))
-            st.session_state.history.append(topic)
-
-    st.write("Recent Topics:")
-    st.write(st.session_state.history[-5:])
+            response = ai_answer(topic, level)
+            st.success(response)
 
 # =========================
-# 📝 QUIZ (FIXED + MEDIUM LEVEL)
+# 📝 QUIZ ENGINE
 # =========================
-elif menu == "📝 Quiz":
+elif menu == "📝 Quiz Engine":
 
-    st.subheader("MCQ Quiz System (Medium Level)")
+    st.subheader("Smart MCQ Assessment System")
 
-    topic = st.text_input("Enter topic for quiz")
+    topic = st.text_input("Enter topic")
+    level = st.selectbox("Difficulty", ["Easy", "Medium", "Hard"])
 
     if st.button("Start Quiz") and topic:
-        st.session_state.quiz = generate_quiz(topic)
+        st.session_state.quiz = generate_quiz(topic, level)
         st.session_state.q_index = 0
         st.session_state.score = 0
         st.session_state.started = True
@@ -165,19 +165,19 @@ elif menu == "📝 Quiz":
 
         if i < len(quiz):
 
-            qdata = quiz[i]
+            q = quiz[i]
 
-            st.markdown(f"### Q{i+1}: {qdata['q']}")
+            st.markdown(f"### Q{i+1}: {q['q']}")
 
             answer = st.radio(
-                "Choose correct answer",
-                qdata["options"],
+                "Select Answer",
+                q["options"],
                 key=f"q_{i}"
             )
 
-            if st.button("Next Question"):
+            if st.button("Next"):
 
-                if answer == qdata["ans"]:
+                if answer == q["ans"]:
                     st.session_state.score += 1
 
                 st.session_state.q_index += 1
@@ -186,34 +186,34 @@ elif menu == "📝 Quiz":
         else:
             st.success(f"🎯 Final Score: {st.session_state.score}/5")
 
-            if st.button("Restart Quiz"):
+            st.progress(st.session_state.score / 5)
+
+            if st.button("Restart"):
                 st.session_state.started = False
-                st.session_state.q_index = 0
-                st.session_state.score = 0
                 st.rerun()
 
 # =========================
-# 📊 VISUAL LEARNING (FLOWCHART ONLY)
+# 📊 VISUAL LEARNING SYSTEM
 # =========================
-elif menu == "📊 Visual Learning":
+elif menu == "📊 Learning Visualizer":
 
-    st.subheader("Concept Visualization")
+    st.subheader("Concept Learning Flow")
 
-    topic = st.text_input("Enter topic for visualization")
+    topic = st.text_input("Enter topic")
 
-    if st.button("Generate Flowchart"):
+    if st.button("Generate Learning Path"):
 
         if topic:
 
-            st.markdown("### 🔁 Concept Flow")
+            st.markdown("### 🔁 Knowledge Flow")
 
             dot = graphviz.Digraph()
 
             dot.node("A", topic)
             dot.node("B", "Definition")
-            dot.node("C", "Working Mechanism")
+            dot.node("C", "Working Principle")
             dot.node("D", "Applications")
-            dot.node("E", "Complexity Analysis")
+            dot.node("E", "Optimization")
 
             dot.edges([
                 ("A", "B"),
