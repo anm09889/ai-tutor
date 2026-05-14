@@ -108,13 +108,28 @@ elif mode == "Image Generator":
 
     prompt = st.text_input("Describe image")
 
+    @st.cache_resource
+    def load_image_model():
+        from diffusers import StableDiffusionPipeline
+        import torch
+
+        model_id = "runwayml/stable-diffusion-v1-5"
+
+        pipe = StableDiffusionPipeline.from_pretrained(
+            model_id,
+            torch_dtype=torch.float32
+        )
+
+        pipe = pipe.to("cpu")
+        return pipe
+
+    image_model = load_image_model()
+
     if st.button("Generate"):
         if prompt:
             with st.spinner("Generating image... (first time slow)"):
-                global image_model
-                if image_model is None:
-                    image_model = load_image_model()
-
                 image = image_model(prompt).images[0]
+
+            st.image(image, caption=prompt)
 
             st.image(image, caption=prompt)
