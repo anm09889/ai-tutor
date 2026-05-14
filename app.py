@@ -6,174 +6,161 @@ import random
 # PAGE CONFIG
 # =========================
 st.set_page_config(
-    page_title="AI Learning Studio",
-    page_icon="🎓",
+    page_title="Universal AI Tutor",
+    page_icon="🧠",
     layout="wide"
 )
 
 # =========================
-# MODERN UI STYLE (CUSTOM CSS)
+# MODERN UI
 # =========================
 st.markdown("""
 <style>
-
-body {
-    background-color: #0f172a;
-    color: white;
-}
-
-.main-title {
+.main {
     text-align: center;
-    font-size: 40px;
+    font-size: 38px;
     font-weight: bold;
-    color: #38bdf8;
+    color: #4ade80;
 }
 
 .card {
-    background-color: #1e293b;
-    padding: 20px;
-    border-radius: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
+    background: #111827;
+    padding: 18px;
+    border-radius: 12px;
+    margin-top: 10px;
+    color: white;
 }
 
-button {
-    border-radius: 10px !important;
+.small {
+    color: #9ca3af;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
 # =========================
-# SESSION STATE
+# UNIVERSAL AI ENGINE (SMART FALLBACK)
 # =========================
-if "quiz_started" not in st.session_state:
-    st.session_state.quiz_started = False
-if "q_index" not in st.session_state:
-    st.session_state.q_index = 0
-if "score" not in st.session_state:
-    st.session_state.score = 0
+def ai_engine(query):
 
-# =========================
-# FAST AI ENGINE
-# =========================
-def ai_answer(question):
-    q = question.lower()
+    q = query.lower()
 
-    if "sorting" in q:
-        return "Sorting arranges data in order. Example: Bubble, Merge, Quick Sort. Time complexity varies from O(n²) to O(n log n)."
+    # --- MATH / TECH ---
+    if any(word in q for word in ["algorithm", "sorting", "dp", "array", "tree", "graph"]):
+        return f"""
+📘 TECH EXPLANATION
 
-    if "dp" in q or "dynamic programming" in q:
-        return "Dynamic Programming solves problems by storing results of subproblems to avoid repetition. It improves efficiency drastically."
+✔ Topic: {query}
 
-    if "array" in q:
-        return "Array is a linear data structure storing elements in contiguous memory. Access is O(1)."
+✔ Definition:
+This is a computer science concept used to solve structured problems.
 
-    return f"Simple Explanation:\n\n{question}\n\nThis concept is used in Computer Science for problem solving and optimization."
+✔ Key Idea:
+Break problems → process step-by-step → optimize solution.
 
-# =========================
-# QUIZ GENERATOR
-# =========================
-def quiz(topic):
-    return [
-        (f"What is {topic}?", "Concept"),
-        (f"Why is {topic} used?", "Efficiency"),
-        (f"Where is {topic} applied?", "CS"),
-        (f"Main idea of {topic}?", "Logic"),
-        (f"{topic} belongs to?", "Computer Science")
-    ]
+✔ Real Use:
+- Software development
+- AI systems
+- Search engines
 
-# =========================
-# HEADER UI
-# =========================
-st.markdown("<div class='main-title'>🎓 AI Learning Studio</div>", unsafe_allow_html=True)
-st.write("Smart AI Tutor + Quiz System + Student Analysis")
+✔ Complexity Insight:
+Depends on algorithm design (often O(n), O(log n), O(n²))
+"""
 
-# =========================
-# TABS
-# =========================
-tab1, tab2, tab3 = st.tabs(["🤖 Tutor", "📝 Quiz", "📊 Analysis"])
+    # --- SCIENCE ---
+    elif any(word in q for word in ["physics", "force", "energy", "motion", "gravity"]):
+        return f"""
+🔬 SCIENCE EXPLANATION
 
-# =========================
-# 🤖 TUTOR
-# =========================
-with tab1:
-    st.markdown("### 🤖 AI Tutor")
+✔ Topic: {query}
 
-    question = st.text_input("Ask anything (DSA, DBMS, OS, AI)")
+✔ Concept:
+This is a physics-related concept describing natural behavior.
 
-    if st.button("Get Answer"):
-        if question:
-            with st.spinner("Thinking..."):
-                time.sleep(0.5)
-                ans = ai_answer(question)
+✔ Explanation:
+It explains how objects interact in the real world.
 
-            st.markdown(f"""
-            <div class="card">
-            {ans}
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.warning("Please enter a question")
+✔ Example:
+Used in motion, machines, and space systems.
 
-# =========================
-# 📝 QUIZ
-# =========================
-with tab2:
-    st.markdown("### 📝 Smart Quiz System")
+✔ Key Insight:
+Based on laws of nature and mathematical models.
+"""
 
-    topic = st.text_input("Enter topic for quiz")
+    # --- GENERAL KNOWLEDGE ---
+    elif any(word in q for word in ["india", "history", "who", "capital", "president"]):
+        return f"""
+🌍 GENERAL KNOWLEDGE
 
-    if st.button("Start Quiz"):
-        if topic:
-            st.session_state.quiz_data = quiz(topic)
-            st.session_state.quiz_started = True
-            st.session_state.q_index = 0
-            st.session_state.score = 0
+✔ Topic: {query}
 
-    if st.session_state.quiz_started:
+✔ Answer:
+This is a factual real-world concept.
 
-        q_data = st.session_state.quiz_data
-        i = st.session_state.q_index
+✔ Explanation:
+It belongs to general knowledge and factual learning.
 
-        if i < len(q_data):
+✔ Tip:
+Always verify facts from trusted sources.
+"""
 
-            q, correct = q_data[i]
+    # --- DEFAULT SMART AI RESPONSE ---
+    else:
+        return f"""
+🧠 SMART EXPLANATION
 
-            st.markdown(f"""
-            <div class="card">
-            <h3>Q{i+1}: {q}</h3>
-            </div>
-            """, unsafe_allow_html=True)
+✔ Question:
+{query}
 
-            options = ["Concept", "Efficiency", "CS", "Logic", "Computer Science"]
-            answer = st.radio("Choose answer", options, key=i)
+✔ Simple Answer:
+This concept is part of general learning and can be understood step-by-step.
 
-            if st.button("Next Question"):
+✔ Breakdown:
+1. Understand the topic
+2. Break into smaller parts
+3. Learn with examples
+4. Apply in real life
 
-                if answer == correct:
-                    st.session_state.score += 1
+✔ Insight:
+Most concepts become easy when connected with real-world examples.
 
-                st.session_state.q_index += 1
-                st.rerun()
-
-        else:
-            st.success(f"🎉 Final Score: {st.session_state.score}/5")
-
-            if st.button("Restart Quiz"):
-                st.session_state.quiz_started = False
-                st.session_state.q_index = 0
-                st.session_state.score = 0
-                st.rerun()
+✔ Tip:
+Focus on logic, not memorization.
+"""
 
 # =========================
-# 📊 ANALYSIS
+# HEADER
 # =========================
-with tab3:
-    st.markdown("### 📊 Student Analysis")
+st.markdown('<div class="main">🧠 Universal AI Tutor</div>', unsafe_allow_html=True)
+st.write("Ask anything — AI will explain in simple + structured way")
 
-    st.metric("Quiz Score", st.session_state.score)
-    st.metric("Questions Attempted", st.session_state.q_index)
+# =========================
+# INPUT
+# =========================
+question = st.text_input("Enter your question (any subject)")
 
-    st.write("Progress Tracker")
-    st.progress(min(st.session_state.q_index / 5, 1.0))
+# =========================
+# ANSWER BUTTON
+# =========================
+if st.button("Get Answer"):
+
+    if question:
+
+        with st.spinner("Thinking deeply..."):
+            time.sleep(0.6)
+
+            answer = ai_engine(question)
+
+        st.markdown(f"""
+        <div class="card">
+        {answer}
+        </div>
+        """, unsafe_allow_html=True)
+
+    else:
+        st.warning("Please enter a question")
+
+# =========================
+# FOOTER HELP
+# =========================
+st.markdown("---")
+st.markdown("<p class='small'>Supports: DSA, Science, GK, Math, Technology, and general questions</p>", unsafe_allow_html=True)
