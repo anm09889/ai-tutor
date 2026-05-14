@@ -111,7 +111,7 @@ def generate_quiz():
 # UI
 # ==========================================
 
-output = widgets.Output()
+
 
 question_box = widgets.Text(
     placeholder="Ask DAA question...",
