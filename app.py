@@ -1,138 +1,94 @@
 # ==========================================
-# 🎓 AI PERSONAL DAA TUTOR (FIXED VERSION)
+# 🎓 AI PERSONAL DAA TUTOR (STABLE VERSION)
 # ==========================================
 
-# INSTALL LIBRARIES
-!pip install -q gradio transformers accelerate sentencepiece torch
-
-# ==========================================
-# IMPORT LIBRARIES
-# ==========================================
+!pip install -q gradio transformers sentencepiece torch
 
 import gradio as gr
 from transformers import pipeline
 
 # ==========================================
-# LOAD BETTER HUGGING FACE MODEL
+# LOAD MODEL (SAFE + STABLE)
 # ==========================================
 
 print("⏳ Loading AI Tutor Model...")
 
 generator = pipeline(
     "text2text-generation",
-    model="google/flan-t5-large"   # ✅ FIXED (better accuracy)
+    model="google/flan-t5-base"   # ✅ SAFE MODEL (no crash)
 )
 
-print("✅ AI Tutor Loaded Successfully!")
+print("✅ Model Loaded!")
 
 # ==========================================
-# AI ANSWER FUNCTION (FIXED PROMPT)
+# RESPONSE FUNCTION
 # ==========================================
 
 def answer_question(question):
 
     prompt = f"""
-You are a strict expert tutor for Design and Analysis of Algorithms (DAA).
+You are a DAA (Design and Analysis of Algorithms) tutor.
+
+Explain in simple college level:
 
 Topic: {question}
 
-Answer in this format only:
+Format:
+1. Definition
+2. Working steps
+3. Example
+4. Time Complexity (Big-O)
+5. Advantages
+6. Disadvantages
 
-1. Definition (short and clear)
-2. Working / Algorithm (stepwise points)
-3. Example (simple)
-4. Time Complexity (Big-O notation)
-5. Advantages (3 points)
-6. Disadvantages (3 points)
-
-Rules:
-- Do NOT include unnecessary text
-- Do NOT hallucinate or add wrong facts
-- Keep answers exam-ready and simple
+Keep it short, correct, and structured.
 """
 
-    try:
-        result = generator(
-            prompt,
-            max_new_tokens=180,   # ✅ controlled output
-            do_sample=False,      # ✅ no randomness
-            num_beams=4           # ✅ better accuracy
-        )
+    output = generator(
+        prompt,
+        max_new_tokens=180,
+        do_sample=False
+    )
 
-        return result[0]["generated_text"]
-
-    except Exception as e:
-        return f"❌ Error: {e}"
+    return output[0]["generated_text"]
 
 # ==========================================
-# CHATBOT FUNCTION
+# CHAT FUNCTION (FIXED)
 # ==========================================
 
-def chatbot_response(message, history):
+def chat(user_input, history):
+    if history is None:
+        history = []
 
-    response = answer_question(message)
-    history.append((message, response))
+    response = answer_question(user_input)
+
+    history.append((user_input, response))
 
     return history, history
 
 # ==========================================
-# UI STYLING
+# UI
 # ==========================================
 
-custom_css = """
-body {
-    background-color: #0f172a;
-    color: white;
-}
-.gradio-container {
-    font-family: Arial;
-}
-"""
+with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
-# ==========================================
-# GRADIO UI
-# ==========================================
+    gr.Markdown("# 🎓 AI DAA Tutor (Stable Version)")
 
-with gr.Blocks(css=custom_css, theme=gr.themes.Soft()) as demo:
-
-    gr.Markdown("""
-    # 🎓 AI Personal Tutor for DAA
-    ### Ask any topic like Merge Sort, Quick Sort, DP, Greedy, etc.
-    """)
-
-    chatbot = gr.Chatbot(height=500)
+    chatbot = gr.Chatbot(height=450)
 
     state = gr.State([])
 
     msg = gr.Textbox(
-        placeholder="Example: Explain Merge Sort",
-        label="Ask Your Question"
+        placeholder="Ask: Explain Merge Sort / Quick Sort / DP",
+        label="Your Question"
     )
 
-    send_btn = gr.Button("🚀 Ask AI Tutor", variant="primary")
-    clear_btn = gr.Button("🗑 Clear Chat")
+    btn = gr.Button("Ask AI 🚀")
+    clear = gr.Button("Clear 🗑")
 
-    # SEND
-    send_btn.click(
-        chatbot_response,
-        inputs=[msg, state],
-        outputs=[chatbot, state]
-    )
+    btn.click(chat, inputs=[msg, state], outputs=[chatbot, state])
+    msg.submit(chat, inputs=[msg, state], outputs=[chatbot, state])
 
-    msg.submit(
-        chatbot_response,
-        inputs=[msg, state],
-        outputs=[chatbot, state]
-    )
+    clear.click(lambda: ([], []), outputs=[chatbot, state])
 
-    # CLEAR
-    clear_btn.click(
-        lambda: ([], []),
-        outputs=[chatbot, state]
-    )
-
-# ==========================================
-# LAUNCH APP
-# ==========================================
-
-demo.launch(debug=True)
+demo.launch()
