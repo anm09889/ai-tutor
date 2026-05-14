@@ -1,124 +1,68 @@
 import streamlit as st
-from transformers import pipeline
 import requests
 
-# =========================
-# PAGE CONFIG
-# =========================
-st.set_page_config(page_title="AI Tutor Studio", layout="wide")
+st.set_page_config(page_title="Fast AI Tutor", layout="wide")
 
 # =========================
-# FAST CHAT MODEL
+# UI
 # =========================
-@st.cache_resource
-def load_model():
-    return pipeline("text-generation", model="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
-
-model = load_model()
+st.title("🧠 Fast AI Tutor (Hugging Face API)")
+st.write("Instant answers using cloud AI")
 
 # =========================
-# CHAT FUNCTION
+# INPUT
 # =========================
-def get_answer(question):
-
-    prompt = f"""
-You are a helpful AI tutor.
-Explain in simple, clear steps.
-
-Question: {question}
-Answer:
-"""
-
-    result = model(
-        prompt,
-        max_new_tokens=150,
-        do_sample=True,
-        temperature=0.7
-    )
-
-    return result[0]["generated_text"].split("Answer:")[-1].strip()
+question = st.text_input("Ask anything")
 
 # =========================
-# IMAGE GENERATION (STABLE API)
+# HF API CONFIG
 # =========================
-def generate_image(prompt):
+HF_TOKEN = "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"
 
-    API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2"
+API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
 
-    headers = {
-        "Authorization": "Bearer YOUR_HUGGINGFACE_TOKEN"
+headers = {
+    "Authorization": f"Bearer {HF_TOKEN}"
+}
+
+# =========================
+# FUNCTION
+# =========================
+def get_answer(prompt):
+
+    payload = {
+        "inputs": f"You are a helpful tutor. Explain clearly:\n{prompt}",
+        "parameters": {
+            "max_new_tokens": 200,
+            "temperature": 0.7
+        }
     }
 
-    response = requests.post(API_URL, headers=headers, json={"inputs": prompt})
+    response = requests.post(API_URL, headers=headers, json=payload)
 
-    return response.content
+    result = response.json()
 
-# =========================
-# SESSION STATE
-# =========================
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+    # safety fallback
+    if isinstance(result, list) and "generated_text" in result[0]:
+        return result[0]["generated_text"]
 
-# =========================
-# UI HEADER
-# =========================
-st.title("🧠 AI Tutor Studio")
-st.write("Chat with AI + Generate Images instantly")
+    if "error" in result:
+        return "Error: " + result["error"]
+
+    return str(result)
 
 # =========================
-# TABS
+# BUTTON
 # =========================
-tab1, tab2 = st.tabs(["💬 AI Tutor", "🖼 Image Generator"])
+if st.button("Get Answer"):
 
-# =========================
-# 💬 CHAT SECTION
-# =========================
-with tab1:
+    if question.strip():
 
-    st.subheader("Ask Anything")
+        with st.spinner("Thinking instantly..."):
+            answer = get_answer(question)
 
-    for msg in st.session_state.chat_history:
-        if msg["role"] == "user":
-            st.markdown(f"**🧑 You:** {msg['text']}")
-        else:
-            st.markdown(f"**🤖 AI:** {msg['text']}")
+        st.success("Answer:")
+        st.write(answer)
 
-    question = st.text_input("Type your question")
-
-    if st.button("Send"):
-
-        if question.strip():
-
-            st.session_state.chat_history.append({"role": "user", "text": question})
-
-            with st.spinner("Thinking..."):
-                answer = get_answer(question)
-
-            st.session_state.chat_history.append({"role": "ai", "text": answer})
-
-            st.rerun()
-
-        else:
-            st.warning("Please enter a question")
-
-# =========================
-# 🖼 IMAGE GENERATOR
-# =========================
-with tab2:
-
-    st.subheader("Generate AI Images")
-
-    prompt = st.text_input("Describe image (e.g. robot studying in library)")
-
-    if st.button("Generate Image"):
-
-        if prompt.strip():
-
-            with st.spinner("Generating image..."):
-
-                image_bytes = generate_image(prompt)
-
-            st.image(image_bytes, caption=prompt)
-
-        else:
-            st.warning("Please enter a prompt")
+    else:
+        st.warning("Enter a question")
