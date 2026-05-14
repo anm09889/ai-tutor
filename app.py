@@ -1,254 +1,187 @@
 import streamlit as st
+import sqlite3
+import hashlib
 import random
-import graphviz
-from transformers import pipeline
 
 # =========================
-# APP CONFIG
+# PAGE CONFIG
 # =========================
-st.set_page_config(
-    page_title="AI EdTech Platform",
-    page_icon="🎓",
-    layout="wide"
+st.set_page_config(page_title="AI Tutor Login System", page_icon="🎓", layout="wide")
+
+# =========================
+# DATABASE SETUP
+# =========================
+conn = sqlite3.connect("users.db", check_same_thread=False)
+c = conn.cursor()
+
+c.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    username TEXT PRIMARY KEY,
+    password TEXT
 )
+""")
+
+c.execute("""
+CREATE TABLE IF NOT EXISTS scores (
+    username TEXT,
+    score INTEGER
+)
+""")
+conn.commit()
 
 # =========================
-# LOAD AI MODEL
+# PASSWORD HASH
 # =========================
-@st.cache_resource
-def load_model():
-    return pipeline("text-generation", model="gpt2")
-
-ai = load_model()
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
 
 # =========================
-# HEADER
+# AUTH FUNCTIONS
 # =========================
-st.markdown("""
-<h1 style='text-align:center; color:#4F8BF9;'>🎓 AI EdTech Platform</h1>
-<p style='text-align:center; color:gray;'>Tutor • Exam • Interview • Analytics • Concept Mapping</p>
-""", unsafe_allow_html=True)
+def signup_user(username, password):
+    try:
+        c.execute("INSERT INTO users VALUES (?, ?)", (username, hash_password(password)))
+        conn.commit()
+        return True
+    except:
+        return False
+
+def login_user(username, password):
+    c.execute("SELECT * FROM users WHERE username=? AND password=?",
+              (username, hash_password(password)))
+    return c.fetchone()
 
 # =========================
 # SESSION STATE
 # =========================
-for key in ["score", "q_index", "quiz", "started", "history"]:
-    if key not in st.session_state:
-        st.session_state[key] = [] if key == "history" else 0 if key in ["score","q_index"] else False if key=="started" else []
+if "user" not in st.session_state:
+    st.session_state.user = None
 
 # =========================
-# AI ENGINE
+# LOGIN / SIGNUP PAGE
 # =========================
-def ai_response(topic, mode):
+if st.session_state.user is None:
 
-    prompt = f"""
-Explain {topic} for students.
+    st.title("🎓 AI Tutor Login System")
 
-Mode: {mode}
+    menu = st.radio("Choose option", ["Login", "Signup"])
 
-Include:
-- Definition
-- Working
-- Real-world use
-- Interview importance
-- Exam answer format
-"""
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
 
-    result = ai(prompt, max_length=220, do_sample=True)[0]["generated_text"]
+    if menu == "Signup":
+        if st.button("Create Account"):
+            if signup_user(username, password):
+                st.success("Account created! Now login.")
+            else:
+                st.error("User already exists")
 
-    return result
-
-# =========================
-# EXAM QUESTIONS (MEDIUM LEVEL)
-# =========================
-def generate_quiz(topic):
-
-    return [
-        {
-            "q": f"What is the core idea of {topic}?",
-            "options": [
-                "Efficient problem solving",
-                "Random execution",
-                "Visual design",
-                "Hardware optimization"
-            ],
-            "ans": "Efficient problem solving"
-        },
-        {
-            "q": f"{topic} is mainly used in?",
-            "options": [
-                "Algorithms & Data Structures",
-                "Graphic Design",
-                "Video Editing",
-                "Networking hardware"
-            ],
-            "ans": "Algorithms & Data Structures"
-        },
-        {
-            "q": f"Key factor in analyzing {topic}?",
-            "options": [
-                "Time and Space Complexity",
-                "Color grading",
-                "Audio frequency",
-                "Image resolution"
-            ],
-            "ans": "Time and Space Complexity"
-        },
-        {
-            "q": f"{topic} improves which system property?",
-            "options": [
-                "Performance",
-                "Decoration",
-                "Sound",
-                "Brightness"
-            ],
-            "ans": "Performance"
-        },
-        {
-            "q": f"{topic} is related to?",
-            "options": [
-                "Logical reasoning",
-                "Painting",
-                "Music",
-                "Animation"
-            ],
-            "ans": "Logical reasoning"
-        }
-    ]
-
-# =========================
-# SIDEBAR NAVIGATION
-# =========================
-menu = st.sidebar.radio(
-    "📌 Navigation",
-    ["🤖 AI Tutor", "📝 Exam Mode", "🎯 Interview Mode", "🔁 Concept Map", "📊 Analytics"]
-)
-
-# =========================
-# 🤖 AI TUTOR MODULE
-# =========================
-if menu == "🤖 AI Tutor":
-
-    st.subheader("Smart AI Tutor Engine")
-
-    topic = st.text_input("Enter topic (DSA, OS, DBMS, CN, AI)")
-
-    mode = st.selectbox("Mode", ["Beginner", "Intermediate", "Advanced", "Interview", "Exam Answer"])
-
-    if st.button("Generate Explanation"):
-
-        if topic:
-            st.session_state.history.append(topic)
-            st.success(ai_response(topic, mode))
-
-    st.write("Recent Topics:")
-    st.write(st.session_state.history[-5:])
-
-# =========================
-# 📝 EXAM MODE
-# =========================
-elif menu == "📝 Exam Mode":
-
-    st.subheader("College-Level MCQ Exam System")
-
-    topic = st.text_input("Enter topic")
-
-    if st.button("Start Exam") and topic:
-        st.session_state.quiz = generate_quiz(topic)
-        st.session_state.q_index = 0
-        st.session_state.score = 0
-        st.session_state.started = True
-
-    if st.session_state.started:
-
-        i = st.session_state.q_index
-        quiz = st.session_state.quiz
-
-        if i < len(quiz):
-
-            q = quiz[i]
-
-            st.markdown(f"### Q{i+1}: {q['q']}")
-
-            answer = st.radio(
-                "Select answer",
-                q["options"],
-                key=f"q_{i}"
-            )
-
-            if st.button("Next"):
-
-                if answer == q["ans"]:
-                    st.session_state.score += 1
-
-                st.session_state.q_index += 1
+    if menu == "Login":
+        if st.button("Login"):
+            if login_user(username, password):
+                st.session_state.user = username
+                st.success("Login successful!")
                 st.rerun()
+            else:
+                st.error("Invalid credentials")
 
-        else:
-            st.success(f"🎯 Final Score: {st.session_state.score}/5")
-            st.progress(st.session_state.score / 5)
+# =========================
+# MAIN APP (AFTER LOGIN)
+# =========================
+else:
 
-            if st.button("Restart Exam"):
+    st.sidebar.success(f"Logged in as {st.session_state.user}")
+
+    if st.sidebar.button("Logout"):
+        st.session_state.user = None
+        st.rerun()
+
+    menu = st.sidebar.radio("Menu", ["AI Tutor", "Quiz", "Analysis"])
+
+    # =========================
+    # AI TUTOR
+    # =========================
+    if menu == "AI Tutor":
+        st.title("🤖 AI Tutor")
+
+        q = st.text_input("Ask question")
+
+        if st.button("Get Answer"):
+            st.success(f"Answer for: {q}")
+
+    # =========================
+    # QUIZ
+    # =========================
+    elif menu == "Quiz":
+
+        st.title("📝 Quiz System")
+
+        topic = st.text_input("Enter topic")
+
+        def generate_quiz(topic):
+            return [
+                {"q": f"What is {topic}?", "ans": "Concept"},
+                {"q": f"Where is {topic} used?", "ans": "CS"},
+                {"q": f"Explain {topic}", "ans": "Theory"},
+                {"q": f"Importance of {topic}", "ans": "High"},
+                {"q": f"{topic} belongs to?", "ans": "DSA"}
+            ]
+
+        if "quiz" not in st.session_state:
+            st.session_state.quiz = []
+            st.session_state.index = 0
+            st.session_state.score = 0
+            st.session_state.started = False
+
+        if st.button("Start Quiz"):
+            if topic:
+                st.session_state.quiz = generate_quiz(topic)
+                st.session_state.index = 0
+                st.session_state.score = 0
+                st.session_state.started = True
+
+        if st.session_state.started:
+
+            qz = st.session_state.quiz
+            i = st.session_state.index
+
+            if i < len(qz):
+
+                st.subheader(qz[i]["q"])
+                ans = st.radio("Answer", ["Concept", "CS", "Theory", "High", "DSA"], key=i)
+
+                if st.button("Next"):
+                    if ans == qz[i]["ans"]:
+                        st.session_state.score += 1
+                    st.session_state.index += 1
+                    st.rerun()
+
+            else:
+                st.success(f"Score: {st.session_state.score}/5")
+
+                c.execute("INSERT INTO scores VALUES (?, ?)",
+                          (st.session_state.user, st.session_state.score))
+                conn.commit()
+
                 st.session_state.started = False
-                st.rerun()
 
-# =========================
-# 🎯 INTERVIEW MODE
-# =========================
-elif menu == "🎯 Interview Mode":
+    # =========================
+    # ANALYSIS
+    # =========================
+    elif menu == "Analysis":
 
-    st.subheader("Interview Preparation Mode")
+        st.title("📊 Student Analysis")
 
-    topic = st.text_input("Enter topic")
+        c.execute("SELECT score FROM scores WHERE username=?",
+                  (st.session_state.user,))
+        data = c.fetchall()
 
-    if st.button("Generate Interview Answer"):
+        if not data:
+            st.info("No data yet")
+        else:
+            scores = [i[0] for i in data]
 
-        if topic:
-            st.info(ai_response(topic, "Interview"))
+            st.metric("Total Attempts", len(scores))
+            st.metric("Average Score", sum(scores)/len(scores))
 
-# =========================
-# 🔁 CONCEPT MAP
-# =========================
-elif menu == "🔁 Concept Map":
-
-    st.subheader("Concept Relationship Graph")
-
-    topic = st.text_input("Enter topic")
-
-    if st.button("Generate Map"):
-
-        if topic:
-
-            dot = graphviz.Digraph()
-
-            dot.node("A", topic)
-            dot.node("B", "Core Idea")
-            dot.node("C", "Working Principle")
-            dot.node("D", "Applications")
-            dot.node("E", "Complexity / Importance")
-            dot.node("F", "Related Concepts")
-
-            dot.edges([
-                ("A","B"),
-                ("A","C"),
-                ("C","D"),
-                ("C","E"),
-                ("C","F")
-            ])
-
-            st.graphviz_chart(dot)
-
-# =========================
-# 📊 ANALYTICS
-# =========================
-elif menu == "📊 Analytics":
-
-    st.subheader("Student Learning Analytics")
-
-    st.metric("Topics Studied", len(st.session_state.history))
-    st.metric("Last Score", st.session_state.score)
-
-    st.progress(min(st.session_state.q_index / 5, 1.0))
-
-    st.write("Recent Topics:")
-    st.write(st.session_state.history[-10:])
+            st.line_chart(scores)
