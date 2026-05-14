@@ -1,94 +1,202 @@
 # ==========================================
-# 🎓 AI PERSONAL DAA TUTOR (STABLE VERSION)
+# 🎓 FAST & ACCURATE AI DAA TUTOR (FINAL)
 # ==========================================
 
-!pip install -q gradio transformers sentencepiece torch
+!pip install -q transformers torch accelerate ipywidgets sentencepiece
 
-import gradio as gr
+# ==========================================
+# IMPORTS
+# ==========================================
+
 from transformers import pipeline
+from IPython.display import display, clear_output
+import ipywidgets as widgets
+import random
 
 # ==========================================
-# LOAD MODEL (SAFE + STABLE)
+# LOAD MODEL (OPTIMIZED)
 # ==========================================
 
-print("⏳ Loading AI Tutor Model...")
+print("⏳ Loading optimized AI model...")
 
 generator = pipeline(
-    "text2text-generation",
-    model="google/flan-t5-base"   # ✅ SAFE MODEL (no crash)
+    "text-generation",
+    model="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    device_map="auto"
 )
 
 print("✅ Model Loaded!")
 
 # ==========================================
-# RESPONSE FUNCTION
+# QUIZ BANK (same as yours)
+# ==========================================
+
+quiz_bank = [
+    {
+        "question": "What is the average time complexity of Quick Sort?",
+        "options": ["O(n²)", "O(log n)", "O(n log n)", "O(n)"],
+        "answer": "O(n log n)"
+    },
+    {
+        "question": "Which algorithm uses Divide and Conquer approach?",
+        "options": ["Merge Sort", "Linear Search", "Bubble Sort", "DFS"],
+        "answer": "Merge Sort"
+    },
+    {
+        "question": "Which data structure is mainly used in BFS?",
+        "options": ["Stack", "Queue", "Heap", "Tree"],
+        "answer": "Queue"
+    },
+    {
+        "question": "What is the worst case complexity of Binary Search?",
+        "options": ["O(n)", "O(log n)", "O(n²)", "O(1)"],
+        "answer": "O(log n)"
+    },
+    {
+        "question": "Dynamic Programming is mainly used when problems have:",
+        "options": [
+            "Overlapping subproblems",
+            "Sorting property",
+            "Greedy property",
+            "Randomization"
+        ],
+        "answer": "Overlapping subproblems"
+    }
+]
+
+# ==========================================
+# FAST + ACCURATE ANSWER FUNCTION
 # ==========================================
 
 def answer_question(question):
 
     prompt = f"""
-You are a DAA (Design and Analysis of Algorithms) tutor.
+You are a strict DAA (Design and Analysis of Algorithms) tutor.
 
-Explain in simple college level:
+Give a correct, exam-ready answer.
 
-Topic: {question}
+Question: {question}
 
 Format:
-1. Definition
-2. Working steps
-3. Example
-4. Time Complexity (Big-O)
-5. Advantages
-6. Disadvantages
-
-Keep it short, correct, and structured.
+Definition:
+Explanation:
+Example:
+Time Complexity:
+Key Points:
 """
 
-    output = generator(
-        prompt,
-        max_new_tokens=180,
-        do_sample=False
-    )
+    try:
+        result = generator(
+            prompt,
+            max_new_tokens=180,   # 🔥 faster
+            do_sample=False,      # 🔥 more accurate (no randomness)
+            temperature=0.2       # 🔥 stable output
+        )
 
-    return output[0]["generated_text"]
+        text = result[0]["generated_text"]
+
+        # remove prompt safely
+        answer = text.replace(prompt, "").strip()
+
+        return answer
+
+    except Exception as e:
+        return f"Error: {e}"
 
 # ==========================================
-# CHAT FUNCTION (FIXED)
+# QUIZ FUNCTION
 # ==========================================
 
-def chat(user_input, history):
-    if history is None:
-        history = []
-
-    response = answer_question(user_input)
-
-    history.append((user_input, response))
-
-    return history, history
+def generate_quiz():
+    return random.choice(quiz_bank)
 
 # ==========================================
 # UI
 # ==========================================
 
-with gr.Blocks(theme=gr.themes.Soft()) as demo:
+output = widgets.Output()
 
-    gr.Markdown("# 🎓 AI DAA Tutor (Stable Version)")
+question_box = widgets.Text(
+    placeholder="Ask DAA question...",
+    description="Question:",
+    layout=widgets.Layout(width='85%')
+)
 
-    chatbot = gr.Chatbot(height=450)
+ask_btn = widgets.Button(description="Ask AI", button_style="success")
+quiz_btn = widgets.Button(description="Quiz", button_style="info")
+clear_btn = widgets.Button(description="Clear", button_style="warning")
 
-    state = gr.State([])
+# ==========================================
+# ASK FUNCTION
+# ==========================================
 
-    msg = gr.Textbox(
-        placeholder="Ask: Explain Merge Sort / Quick Sort / DP",
-        label="Your Question"
-    )
+def on_ask(b):
+    with output:
+        clear_output()
 
-    btn = gr.Button("Ask AI 🚀")
-    clear = gr.Button("Clear 🗑")
+        q = question_box.value.strip()
+        if not q:
+            print("Enter a question.")
+            return
 
-    btn.click(chat, inputs=[msg, state], outputs=[chatbot, state])
-    msg.submit(chat, inputs=[msg, state], outputs=[chatbot, state])
+        print("Generating answer...\n")
+        print(answer_question(q))
 
-    clear.click(lambda: ([], []), outputs=[chatbot, state])
+ask_btn.on_click(on_ask)
 
-demo.launch()
+# ==========================================
+# QUIZ FUNCTION
+# ==========================================
+
+def on_quiz(b):
+    with output:
+        clear_output()
+
+        quiz = generate_quiz()
+
+        print("DAA MCQ QUIZ\n")
+        print(quiz["question"])
+
+        options = widgets.RadioButtons(options=quiz["options"])
+
+        submit = widgets.Button(description="Submit", button_style="primary")
+        result = widgets.Output()
+
+        def check(_):
+            with result:
+                clear_output()
+                if options.value == quiz["answer"]:
+                    print("Correct ✅")
+                else:
+                    print("Wrong ❌")
+                    print("Answer:", quiz["answer"])
+
+        submit.on_click(check)
+
+        display(widgets.VBox([options, submit, result]))
+
+quiz_btn.on_click(on_quiz)
+
+# ==========================================
+# CLEAR
+# ==========================================
+
+def on_clear(b):
+    with output:
+        clear_output()
+    question_box.value = ""
+
+clear_btn.on_click(on_clear)
+
+# ==========================================
+# UI LAYOUT
+# ==========================================
+
+title = widgets.HTML("<h2>🎓 Fast AI DAA Tutor</h2>")
+
+display(widgets.VBox([
+    title,
+    question_box,
+    widgets.HBox([ask_btn, quiz_btn, clear_btn]),
+    output
+]))
