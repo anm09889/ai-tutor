@@ -1,54 +1,120 @@
 import streamlit as st
-import requests
+from transformers import pipeline
+import torch
+import random
 
-st.set_page_config(page_title="AI Tutor", layout="wide")
+# ==========================
+# LOAD AI MODEL (LOCAL)
+# ==========================
 
-st.title("🧠 AI Tutor (Stable Working Version)")
+@st.cache_resource
+def load_chatbot():
+    return pipeline(
+        "text-generation",
+        model="distilgpt2"   # lightweight fast model
+    )
 
-question = st.text_input("Ask anything")
+chatbot = load_chatbot()
 
-HF_TOKEN = "YOUR_HF_TOKEN"
+# ==========================
+# IMAGE MODEL (LOCAL SD)
+# ==========================
 
-# ✅ ONLY STABLE MODEL FOR FREE INFERENCE
-API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-small"
+from diffusers import StableDiffusionPipeline
 
-headers = {
-    "Authorization": f"Bearer {HF_TOKEN}"
-}
+@st.cache_resource
+def load_image_model():
+    model_id = "runwayml/stable-diffusion-v1-5"
+    pipe = StableDiffusionPipeline.from_pretrained(
+        model_id,
+        torch_dtype=torch.float32
+    )
+    pipe = pipe.to("cpu")  # Streamlit free = CPU
+    return pipe
 
-def get_answer(prompt):
+image_model = None
 
-    payload = {
-        "inputs": f"Answer clearly and simply: {prompt}"
-    }
+# ==========================
+# VARIATION SYSTEM
+# ==========================
 
-    response = requests.post(API_URL, headers=headers, json=payload)
+def vary(text):
+    styles = [
+        "Explain simply:",
+        "Teach step by step:",
+        "Student-friendly explanation:",
+        "Short clear answer:",
+        "Break it down:"
+    ]
+    return random.choice(styles) + " " + text
 
-    # SAFE JSON PARSE
-    try:
-        data = response.json()
-    except:
-        return f"API Error: {response.text}"
 
-    # ERROR HANDLING
-    if isinstance(data, dict) and "error" in data:
-        return f"HF Error: {data['error']}"
+# ==========================
+# CHAT FUNCTION
+# ==========================
 
-    # OUTPUT HANDLING
-    if isinstance(data, list):
-        return data[0].get("generated_text", str(data))
+def get_response(user_input):
+    prompt = vary(user_input)
 
-    return str(data)
+    result = chatbot(
+        prompt,
+        max_length=120,
+        num_return_sequences=1,
+        do_sample=True,
+        temperature=0.8
+    )
 
-if st.button("Get Answer"):
+    return result[0]["generated_text"]
 
-    if question.strip():
 
-        with st.spinner("Thinking..."):
-            answer = get_answer(question)
+# ==========================
+# STREAMLIT UI
+# ==========================
 
-        st.success("Answer:")
-        st.write(answer)
+st.set_page_config(page_title="AI Tutor (No API Key)", layout="wide")
 
-    else:
-        st.warning("Enter a question")
+st.title("🎓 AI Tutor + Image Generator (100% FREE)")
+
+mode = st.sidebar.selectbox("Choose Mode", ["Chat Tutor", "Image Generator"])
+
+# ==========================
+# CHAT MODE
+# ==========================
+
+if mode == "Chat Tutor":
+    st.subheader("💬 Ask anything")
+
+    if "chat" not in st.session_state:
+        st.session_state.chat = []
+
+    user_input = st.text_input("Enter your question")
+
+    if st.button("Ask"):
+        if user_input:
+            answer = get_response(user_input)
+            st.session_state.chat.append((user_input, answer))
+
+    for q, a in reversed(st.session_state.chat):
+        st.markdown(f"**🧑 You:** {q}")
+        st.markdown(f"**🤖 AI:** {a}")
+        st.divider()
+
+# ==========================
+# IMAGE MODE
+# ==========================
+
+elif mode == "Image Generator":
+    st.subheader("🎨 Generate Image (No API Key)")
+
+    prompt = st.text_input("Describe image")
+
+    if st.button("Generate"):
+        if prompt:
+            with st.spinner("Generating image... (first time slow)"):
+                global image_model
+                if image_model is None:
+                    image_model = load_image_model()
+
+                image = image_model(prompt).images[0]
+
+            st.image(image, caption=prompt)
