@@ -1,199 +1,179 @@
-# ==========================================
-# 🎓 FAST & ACCURATE AI DAA TUTOR (FINAL)
-# ==========================================
-
-
-# ==========================================
-# IMPORTS
-# ==========================================
-
-from transformers import pipeline
+import streamlit as st
+import time
 import random
 
-# ==========================================
-# LOAD MODEL (OPTIMIZED)
-# ==========================================
-
-print("⏳ Loading optimized AI model...")
-
-generator = pipeline(
-    "text-generation",
-    model="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-    device_map="auto"
+# =========================
+# PAGE CONFIG
+# =========================
+st.set_page_config(
+    page_title="AI Learning Studio",
+    page_icon="🎓",
+    layout="wide"
 )
 
-print("✅ Model Loaded!")
+# =========================
+# MODERN UI STYLE (CUSTOM CSS)
+# =========================
+st.markdown("""
+<style>
 
-# ==========================================
-# QUIZ BANK (same as yours)
-# ==========================================
+body {
+    background-color: #0f172a;
+    color: white;
+}
 
-quiz_bank = [
-    {
-        "question": "What is the average time complexity of Quick Sort?",
-        "options": ["O(n²)", "O(log n)", "O(n log n)", "O(n)"],
-        "answer": "O(n log n)"
-    },
-    {
-        "question": "Which algorithm uses Divide and Conquer approach?",
-        "options": ["Merge Sort", "Linear Search", "Bubble Sort", "DFS"],
-        "answer": "Merge Sort"
-    },
-    {
-        "question": "Which data structure is mainly used in BFS?",
-        "options": ["Stack", "Queue", "Heap", "Tree"],
-        "answer": "Queue"
-    },
-    {
-        "question": "What is the worst case complexity of Binary Search?",
-        "options": ["O(n)", "O(log n)", "O(n²)", "O(1)"],
-        "answer": "O(log n)"
-    },
-    {
-        "question": "Dynamic Programming is mainly used when problems have:",
-        "options": [
-            "Overlapping subproblems",
-            "Sorting property",
-            "Greedy property",
-            "Randomization"
-        ],
-        "answer": "Overlapping subproblems"
-    }
-]
+.main-title {
+    text-align: center;
+    font-size: 40px;
+    font-weight: bold;
+    color: #38bdf8;
+}
 
-# ==========================================
-# FAST + ACCURATE ANSWER FUNCTION
-# ==========================================
+.card {
+    background-color: #1e293b;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
+}
 
-def answer_question(question):
+button {
+    border-radius: 10px !important;
+}
 
-    prompt = f"""
-You are a strict DAA (Design and Analysis of Algorithms) tutor.
+</style>
+""", unsafe_allow_html=True)
 
-Give a correct, exam-ready answer.
+# =========================
+# SESSION STATE
+# =========================
+if "quiz_started" not in st.session_state:
+    st.session_state.quiz_started = False
+if "q_index" not in st.session_state:
+    st.session_state.q_index = 0
+if "score" not in st.session_state:
+    st.session_state.score = 0
 
-Question: {question}
+# =========================
+# FAST AI ENGINE
+# =========================
+def ai_answer(question):
+    q = question.lower()
 
-Format:
-Definition:
-Explanation:
-Example:
-Time Complexity:
-Key Points:
-"""
+    if "sorting" in q:
+        return "Sorting arranges data in order. Example: Bubble, Merge, Quick Sort. Time complexity varies from O(n²) to O(n log n)."
 
-    try:
-        result = generator(
-            prompt,
-            max_new_tokens=180,   # 🔥 faster
-            do_sample=False,      # 🔥 more accurate (no randomness)
-            temperature=0.2       # 🔥 stable output
-        )
+    if "dp" in q or "dynamic programming" in q:
+        return "Dynamic Programming solves problems by storing results of subproblems to avoid repetition. It improves efficiency drastically."
 
-        text = result[0]["generated_text"]
+    if "array" in q:
+        return "Array is a linear data structure storing elements in contiguous memory. Access is O(1)."
 
-        # remove prompt safely
-        answer = text.replace(prompt, "").strip()
+    return f"Simple Explanation:\n\n{question}\n\nThis concept is used in Computer Science for problem solving and optimization."
 
-        return answer
+# =========================
+# QUIZ GENERATOR
+# =========================
+def quiz(topic):
+    return [
+        (f"What is {topic}?", "Concept"),
+        (f"Why is {topic} used?", "Efficiency"),
+        (f"Where is {topic} applied?", "CS"),
+        (f"Main idea of {topic}?", "Logic"),
+        (f"{topic} belongs to?", "Computer Science")
+    ]
 
-    except Exception as e:
-        return f"Error: {e}"
+# =========================
+# HEADER UI
+# =========================
+st.markdown("<div class='main-title'>🎓 AI Learning Studio</div>", unsafe_allow_html=True)
+st.write("Smart AI Tutor + Quiz System + Student Analysis")
 
-# ==========================================
-# QUIZ FUNCTION
-# ==========================================
+# =========================
+# TABS
+# =========================
+tab1, tab2, tab3 = st.tabs(["🤖 Tutor", "📝 Quiz", "📊 Analysis"])
 
-def generate_quiz():
-    return random.choice(quiz_bank)
+# =========================
+# 🤖 TUTOR
+# =========================
+with tab1:
+    st.markdown("### 🤖 AI Tutor")
 
-# ==========================================
-# UI
-# ==========================================
+    question = st.text_input("Ask anything (DSA, DBMS, OS, AI)")
 
+    if st.button("Get Answer"):
+        if question:
+            with st.spinner("Thinking..."):
+                time.sleep(0.5)
+                ans = ai_answer(question)
 
+            st.markdown(f"""
+            <div class="card">
+            {ans}
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.warning("Please enter a question")
 
-question_box = widgets.Text(
-    placeholder="Ask DAA question...",
-    description="Question:",
-    layout=widgets.Layout(width='85%')
-)
+# =========================
+# 📝 QUIZ
+# =========================
+with tab2:
+    st.markdown("### 📝 Smart Quiz System")
 
-ask_btn = widgets.Button(description="Ask AI", button_style="success")
-quiz_btn = widgets.Button(description="Quiz", button_style="info")
-clear_btn = widgets.Button(description="Clear", button_style="warning")
+    topic = st.text_input("Enter topic for quiz")
 
-# ==========================================
-# ASK FUNCTION
-# ==========================================
+    if st.button("Start Quiz"):
+        if topic:
+            st.session_state.quiz_data = quiz(topic)
+            st.session_state.quiz_started = True
+            st.session_state.q_index = 0
+            st.session_state.score = 0
 
-def on_ask(b):
-    with output:
-        clear_output()
+    if st.session_state.quiz_started:
 
-        q = question_box.value.strip()
-        if not q:
-            print("Enter a question.")
-            return
+        q_data = st.session_state.quiz_data
+        i = st.session_state.q_index
 
-        print("Generating answer...\n")
-        print(answer_question(q))
+        if i < len(q_data):
 
-ask_btn.on_click(on_ask)
+            q, correct = q_data[i]
 
-# ==========================================
-# QUIZ FUNCTION
-# ==========================================
+            st.markdown(f"""
+            <div class="card">
+            <h3>Q{i+1}: {q}</h3>
+            </div>
+            """, unsafe_allow_html=True)
 
-def on_quiz(b):
-    with output:
-        clear_output()
+            options = ["Concept", "Efficiency", "CS", "Logic", "Computer Science"]
+            answer = st.radio("Choose answer", options, key=i)
 
-        quiz = generate_quiz()
+            if st.button("Next Question"):
 
-        print("DAA MCQ QUIZ\n")
-        print(quiz["question"])
+                if answer == correct:
+                    st.session_state.score += 1
 
-        options = widgets.RadioButtons(options=quiz["options"])
+                st.session_state.q_index += 1
+                st.rerun()
 
-        submit = widgets.Button(description="Submit", button_style="primary")
-        result = widgets.Output()
+        else:
+            st.success(f"🎉 Final Score: {st.session_state.score}/5")
 
-        def check(_):
-            with result:
-                clear_output()
-                if options.value == quiz["answer"]:
-                    print("Correct ✅")
-                else:
-                    print("Wrong ❌")
-                    print("Answer:", quiz["answer"])
+            if st.button("Restart Quiz"):
+                st.session_state.quiz_started = False
+                st.session_state.q_index = 0
+                st.session_state.score = 0
+                st.rerun()
 
-        submit.on_click(check)
+# =========================
+# 📊 ANALYSIS
+# =========================
+with tab3:
+    st.markdown("### 📊 Student Analysis")
 
-        display(widgets.VBox([options, submit, result]))
+    st.metric("Quiz Score", st.session_state.score)
+    st.metric("Questions Attempted", st.session_state.q_index)
 
-quiz_btn.on_click(on_quiz)
-
-# ==========================================
-# CLEAR
-# ==========================================
-
-def on_clear(b):
-    with output:
-        clear_output()
-    question_box.value = ""
-
-clear_btn.on_click(on_clear)
-
-# ==========================================
-# UI LAYOUT
-# ==========================================
-
-title = widgets.HTML("<h2>🎓 Fast AI DAA Tutor</h2>")
-
-display(widgets.VBox([
-    title,
-    question_box,
-    widgets.HBox([ask_btn, quiz_btn, clear_btn]),
-    output
-]))
+    st.write("Progress Tracker")
+    st.progress(min(st.session_state.q_index / 5, 1.0))
