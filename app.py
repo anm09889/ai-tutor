@@ -2,7 +2,6 @@
 # 🎓 FAST & ACCURATE AI DAA TUTOR (FINAL)
 # ==========================================
 
-!pip install -q transformers torch accelerate ipywidgets sentencepiece
 
 # ==========================================
 # IMPORTS
