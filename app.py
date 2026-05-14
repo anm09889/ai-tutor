@@ -8,7 +8,6 @@
 # ==========================================
 
 from transformers import pipeline
-import ipywidgets as widgets
 import random
 
 # ==========================================
