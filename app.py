@@ -1,157 +1,138 @@
-import streamlit as st
-import time
+# ==========================================
+# 🎓 AI PERSONAL DAA TUTOR (FIXED VERSION)
+# ==========================================
 
-# =========================
-# PAGE CONFIG
-# =========================
-st.set_page_config(
-    page_title="Fast AI Tutor",
-    page_icon="⚡",
-    layout="wide"
+# INSTALL LIBRARIES
+!pip install -q gradio transformers accelerate sentencepiece torch
+
+# ==========================================
+# IMPORT LIBRARIES
+# ==========================================
+
+import gradio as gr
+from transformers import pipeline
+
+# ==========================================
+# LOAD BETTER HUGGING FACE MODEL
+# ==========================================
+
+print("⏳ Loading AI Tutor Model...")
+
+generator = pipeline(
+    "text2text-generation",
+    model="google/flan-t5-large"   # ✅ FIXED (better accuracy)
 )
 
-# =========================
-# FAST AI ENGINE (NO API)
-# =========================
-def fast_tutor(question):
+print("✅ AI Tutor Loaded Successfully!")
 
-    q = question.lower()
+# ==========================================
+# AI ANSWER FUNCTION (FIXED PROMPT)
+# ==========================================
 
-    # --- DSA TOPICS ---
-    if "sorting" in q:
-        return """
-📘 Sorting Algorithms
+def answer_question(question):
 
-✔ Definition:
-Sorting means arranging data in order (ascending/descending).
+    prompt = f"""
+You are a strict expert tutor for Design and Analysis of Algorithms (DAA).
 
-✔ Types:
-- Bubble Sort
-- Merge Sort
-- Quick Sort
+Topic: {question}
 
-✔ Working:
-Compare elements and rearrange step by step.
+Answer in this format only:
 
-✔ Time Complexity:
-- Bubble: O(n²)
-- Merge: O(n log n)
+1. Definition (short and clear)
+2. Working / Algorithm (stepwise points)
+3. Example (simple)
+4. Time Complexity (Big-O notation)
+5. Advantages (3 points)
+6. Disadvantages (3 points)
 
-✔ Example:
-Arranging marks in ascending order.
+Rules:
+- Do NOT include unnecessary text
+- Do NOT hallucinate or add wrong facts
+- Keep answers exam-ready and simple
 """
 
-    elif "dynamic programming" in q:
-        return """
-📘 Dynamic Programming
+    try:
+        result = generator(
+            prompt,
+            max_new_tokens=180,   # ✅ controlled output
+            do_sample=False,      # ✅ no randomness
+            num_beams=4           # ✅ better accuracy
+        )
 
-✔ Definition:
-Technique to solve problems by breaking into subproblems.
+        return result[0]["generated_text"]
 
-✔ Idea:
-Store results of subproblems to avoid repetition.
+    except Exception as e:
+        return f"❌ Error: {e}"
 
-✔ Steps:
-1. Break problem
-2. Store results
-3. Reuse results
+# ==========================================
+# CHATBOT FUNCTION
+# ==========================================
 
-✔ Example:
-Fibonacci sequence optimization
+def chatbot_response(message, history):
 
-✔ Complexity:
-Improves exponential → linear
+    response = answer_question(message)
+    history.append((message, response))
+
+    return history, history
+
+# ==========================================
+# UI STYLING
+# ==========================================
+
+custom_css = """
+body {
+    background-color: #0f172a;
+    color: white;
+}
+.gradio-container {
+    font-family: Arial;
+}
 """
 
-    elif "array" in q:
-        return """
-📘 Arrays
+# ==========================================
+# GRADIO UI
+# ==========================================
 
-✔ Definition:
-Collection of similar data types stored in memory.
+with gr.Blocks(css=custom_css, theme=gr.themes.Soft()) as demo:
 
-✔ Example:
-int arr[5] = {1,2,3,4,5}
+    gr.Markdown("""
+    # 🎓 AI Personal Tutor for DAA
+    ### Ask any topic like Merge Sort, Quick Sort, DP, Greedy, etc.
+    """)
 
-✔ Operations:
-- Access: O(1)
-- Insert: O(n)
-- Delete: O(n)
+    chatbot = gr.Chatbot(height=500)
 
-✔ Use:
-Used in almost every program.
-"""
+    state = gr.State([])
 
-    elif "dbms" in q:
-        return """
-📘 DBMS
+    msg = gr.Textbox(
+        placeholder="Example: Explain Merge Sort",
+        label="Ask Your Question"
+    )
 
-✔ Definition:
-Database Management System stores and manages data.
+    send_btn = gr.Button("🚀 Ask AI Tutor", variant="primary")
+    clear_btn = gr.Button("🗑 Clear Chat")
 
-✔ Features:
-- Data security
-- Fast retrieval
-- Backup
+    # SEND
+    send_btn.click(
+        chatbot_response,
+        inputs=[msg, state],
+        outputs=[chatbot, state]
+    )
 
-✔ Types:
-- Relational DBMS
-- NoSQL
+    msg.submit(
+        chatbot_response,
+        inputs=[msg, state],
+        outputs=[chatbot, state]
+    )
 
-✔ Example:
-MySQL, MongoDB
-"""
+    # CLEAR
+    clear_btn.click(
+        lambda: ([], []),
+        outputs=[chatbot, state]
+    )
 
-    else:
-        return f"""
-📘 Explanation of: {question}
+# ==========================================
+# LAUNCH APP
+# ==========================================
 
-✔ Simple Idea:
-This topic is important in Computer Science.
-
-✔ How it works:
-It follows step-by-step logical processing.
-
-✔ Key Points:
-- Understand concept
-- Learn examples
-- Practice problems
-
-✔ Tip:
-Focus on understanding, not memorization.
-"""
-
-# =========================
-# UI
-# =========================
-st.title("⚡ Fast AI Tutor (Instant Answers)")
-
-question = st.text_input("Ask your question (DSA / DBMS / AI / OS etc.)")
-
-if st.button("Get Fast Answer"):
-
-    if question:
-
-        with st.spinner("Generating fast explanation..."):
-            time.sleep(0.3)  # very small delay for UX
-            answer = fast_tutor(question)
-
-        st.success(answer)
-
-    else:
-        st.warning("Please enter a question")
-
-# =========================
-# QUICK HELP SECTION
-# =========================
-st.markdown("---")
-st.subheader("💡 Supported Topics (Fast Mode)")
-
-st.write("""
-✔ Sorting  
-✔ Arrays  
-✔ Dynamic Programming  
-✔ DBMS  
-✔ OS  
-✔ Any general CS question
-""")
+demo.launch(debug=True)
