@@ -1,79 +1,50 @@
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="Fast AI Tutor", layout="wide")
+st.set_page_config(page_title="AI Tutor", layout="wide")
 
-# =========================
-# UI
-# =========================
-st.title("🧠 Fast AI Tutor (Hugging Face API)")
-st.write("Instant answers using cloud AI")
+st.title("🧠 AI Tutor (Fixed API)")
 
-# =========================
-# INPUT
-# =========================
 question = st.text_input("Ask anything")
 
-# =========================
-# HF API CONFIG
-# =========================
-HF_TOKEN = "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"
+HF_TOKEN = "YOUR_HF_TOKEN"
 
-API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+API_URL = "https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill"
 
 headers = {
     "Authorization": f"Bearer {HF_TOKEN}"
 }
 
-# =========================
-# FUNCTION
-# =========================
 def get_answer(prompt):
 
     payload = {
-        "inputs": f"You are a helpful AI tutor. Explain clearly:\n{prompt}",
-        "parameters": {
-            "max_new_tokens": 200,
-            "temperature": 0.7
-        }
+        "inputs": prompt
     }
 
     response = requests.post(API_URL, headers=headers, json=payload)
 
-    # =========================
-    # SAFE CHECK (IMPORTANT FIX)
-    # =========================
+    # 🔥 SAFE HANDLING
     try:
-        result = response.json()
-    except Exception:
-        return f"⚠ API Error (not JSON): {response.text}"
+        data = response.json()
+    except:
+        return f"API Error (not JSON): {response.text}"
 
-    # =========================
-    # HANDLE HF LOADING RESPONSE
-    # =========================
-    if isinstance(result, dict) and "error" in result:
-        return f"⚠ Hugging Face Error: {result['error']}"
+    # If error returned by HF
+    if isinstance(data, dict) and "error" in data:
+        return f"HF Error: {data['error']}"
 
-    if isinstance(result, dict) and "estimated_time" in result:
-        return "⏳ Model is loading. Try again in a few seconds."
+    # Blenderbot response format
+    if isinstance(data, list):
+        return data[0].get("generated_text", str(data))
 
-    if isinstance(result, list) and "generated_text" in result[0]:
-        return result[0]["generated_text"]
+    return str(data)
 
-    return str(result)
-
-# =========================
-# BUTTON
-# =========================
 if st.button("Get Answer"):
-
-    if question.strip():
-
-        with st.spinner("Thinking instantly..."):
+    if question:
+        with st.spinner("Thinking..."):
             answer = get_answer(question)
 
         st.success("Answer:")
         st.write(answer)
-
     else:
         st.warning("Enter a question")
