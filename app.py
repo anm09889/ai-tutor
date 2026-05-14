@@ -1,109 +1,77 @@
 import streamlit as st
 from transformers import pipeline
-from diffusers import StableDiffusionPipeline
-import torch
+import requests
 
 # =========================
 # PAGE CONFIG
 # =========================
-st.set_page_config(page_title="AI Tutor + Image Generator", layout="wide")
+st.set_page_config(page_title="AI Tutor Studio", layout="wide")
 
 # =========================
-# LOAD TEXT AI (FAST)
+# CHAT MODEL (LIGHTWEIGHT)
 # =========================
 @st.cache_resource
-def load_chat_model():
+def load_chat():
     return pipeline("text-generation", model="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
 
-chat_model = load_chat_model()
+chat_model = load_chat()
 
 # =========================
-# LOAD IMAGE MODEL (LIGHT VERSION)
+# CHAT FUNCTION
 # =========================
-@st.cache_resource
-def load_image_model():
-    model_id = "runwayml/stable-diffusion-v1-5"
-    pipe = StableDiffusionPipeline.from_pretrained(
-        model_id,
-        torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32
+def chat_answer(q):
+
+    prompt = f"Explain clearly and simply:\n{q}\nAnswer:"
+
+    result = chat_model(
+        prompt,
+        max_new_tokens=150,
+        do_sample=True,
+        temperature=0.7
     )
-    pipe.to("cuda" if torch.cuda.is_available() else "cpu")
-    return pipe
 
-image_model = load_image_model()
+    return result[0]["generated_text"].split("Answer:")[-1]
 
 # =========================
-# SESSION STATE
+# IMAGE GENERATION (FAST API METHOD)
+# =========================
+def generate_image(prompt):
+
+    API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2"
+    headers = {"Authorization": "Bearer YOUR_HF_TOKEN"}
+
+    response = requests.post(API_URL, headers=headers, json={"inputs": prompt})
+
+    return response.content
+
+# =========================
+# SESSION
 # =========================
 if "chat" not in st.session_state:
     st.session_state.chat = []
 
 # =========================
-# AI CHAT FUNCTION
+# UI
 # =========================
-def get_chat_response(prompt):
+st.title("🧠 AI Tutor Studio")
 
-    full_prompt = f"""
-You are a helpful AI tutor. Explain clearly and simply.
-
-Question: {prompt}
-Answer:
-"""
-
-    result = chat_model(
-        full_prompt,
-        max_new_tokens=180,
-        do_sample=True,
-        temperature=0.7
-    )
-
-    return result[0]["generated_text"].split("Answer:")[-1].strip()
-
-# =========================
-# IMAGE GENERATION FUNCTION
-# =========================
-def generate_image(prompt):
-
-    image = image_model(prompt).images[0]
-    return image
-
-# =========================
-# UI HEADER
-# =========================
-st.title("🧠 AI Learning Studio")
-st.write("Chat with AI + Generate Images from text")
-
-# =========================
-# TABS
-# =========================
-tab1, tab2 = st.tabs(["💬 AI Tutor", "🖼 Image Generator"])
+tab1, tab2 = st.tabs(["💬 Tutor", "🖼 Image Generator"])
 
 # =========================
 # 💬 CHAT TAB
 # =========================
 with tab1:
 
-    st.subheader("AI Tutor Chat")
-
     for msg in st.session_state.chat:
-        if msg["role"] == "user":
-            st.markdown(f"**🧑 You:** {msg['text']}")
-        else:
-            st.markdown(f"**🤖 AI:** {msg['text']}")
+        st.write(msg["role"], ":", msg["text"])
 
-    user_input = st.text_input("Ask a question")
+    q = st.text_input("Ask anything")
 
     if st.button("Send"):
-
-        if user_input:
-
-            st.session_state.chat.append({"role": "user", "text": user_input})
-
-            with st.spinner("Thinking..."):
-                response = get_chat_response(user_input)
-
-            st.session_state.chat.append({"role": "ai", "text": response})
-
+        if q:
+            st.session_state.chat.append({"role": "You", "text": q})
+            ans = chat_answer(q)
+            st.session_state.chat.append({"role": "AI", "text": ans})
             st.rerun()
 
 # =========================
@@ -111,19 +79,17 @@ with tab1:
 # =========================
 with tab2:
 
-    st.subheader("AI Image Generator")
-
-    prompt = st.text_input("Describe image (e.g. 'robot studying in library')")
+    prompt = st.text_input("Describe image")
 
     if st.button("Generate Image"):
 
         if prompt:
 
-            with st.spinner("Generating image... (may take 10–30 sec)"):
+            st.warning("Generating image...")
 
-                img = generate_image(prompt)
+            img_bytes = generate_image(prompt)
 
-            st.image(img, caption=prompt)
+            st.image(img_bytes)
 
         else:
-            st.warning("Enter an image description")
+            st.warning("Enter prompt")
