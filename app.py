@@ -19,7 +19,7 @@ question = st.text_input("Ask anything")
 # =========================
 HF_TOKEN = "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"
 
-API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base""
+API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
 
 headers = {
     "Authorization": f"Bearer {HF_TOKEN}"
