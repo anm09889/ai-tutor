@@ -1,97 +1,97 @@
 import streamlit as st
-from transformers import pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 import torch
-import random
 
 # ==========================
-# LOAD AI MODEL (LOCAL)
+# CHAT MODEL (BETTER LLM)
 # ==========================
 
 @st.cache_resource
-def load_chatbot():
-    return pipeline(
-        "text-generation",
-        model="distilgpt2"   # lightweight fast model
+def load_chat_model():
+    model_name = "Qwen/Qwen2.5-1.5B-Instruct"
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        torch_dtype=torch.float32,
+        device_map="cpu"
     )
 
-chatbot = load_chatbot()
+    return pipeline(
+        "text-generation",
+        model=model,
+        tokenizer=tokenizer
+    )
+
+chatbot = load_chat_model()
 
 # ==========================
-# IMAGE MODEL (LOCAL SD)
+# IMAGE MODEL (FAST SD TURBO)
 # ==========================
-
-from diffusers import StableDiffusionPipeline
 
 @st.cache_resource
 def load_image_model():
-    model_id = "runwayml/stable-diffusion-v1-5"
-    pipe = StableDiffusionPipeline.from_pretrained(
-        model_id,
+    from diffusers import AutoPipelineForText2Image
+
+    pipe = AutoPipelineForText2Image.from_pretrained(
+        "stabilityai/sd-turbo",
         torch_dtype=torch.float32
-    )
-    pipe = pipe.to("cpu")  # Streamlit free = CPU
+    ).to("cpu")
+
     return pipe
 
-image_model = None
+image_model = load_image_model()
 
 # ==========================
-# VARIATION SYSTEM
+# SMART PROMPT SYSTEM
 # ==========================
 
-def vary(text):
-    styles = [
-        "Explain simply:",
-        "Teach step by step:",
-        "Student-friendly explanation:",
-        "Short clear answer:",
-        "Break it down:"
-    ]
-    return random.choice(styles) + " " + text
+def build_prompt(user_input):
+    return f"""
+You are an expert AI tutor for college students.
 
+Explain clearly, step-by-step, with examples if needed.
 
-# ==========================
-# CHAT FUNCTION
-# ==========================
+Question: {user_input}
 
-def get_response(user_input):
-    prompt = vary(user_input)
-
-    result = chatbot(
-        prompt,
-        max_length=120,
-        num_return_sequences=1,
-        do_sample=True,
-        temperature=0.8
-    )
-
-    return result[0]["generated_text"]
-
+Answer:
+"""
 
 # ==========================
 # STREAMLIT UI
 # ==========================
 
-st.set_page_config(page_title="AI Tutor (No API Key)", layout="wide")
+st.set_page_config(page_title="AI Tutor Pro (No API)", layout="wide")
 
-st.title("🎓 AI Tutor + Image Generator (100% FREE)")
+st.title("🎓 AI Tutor Pro (No API Key, Better Model)")
 
-mode = st.sidebar.selectbox("Choose Mode", ["Chat Tutor", "Image Generator"])
+mode = st.sidebar.selectbox("Mode", ["Chat Tutor", "Image Generator"])
 
 # ==========================
 # CHAT MODE
 # ==========================
 
 if mode == "Chat Tutor":
-    st.subheader("💬 Ask anything")
+    st.subheader("💬 Ask Your Question")
 
     if "chat" not in st.session_state:
         st.session_state.chat = []
 
-    user_input = st.text_input("Enter your question")
+    user_input = st.text_input("Enter question")
 
     if st.button("Ask"):
         if user_input:
-            answer = get_response(user_input)
+            prompt = build_prompt(user_input)
+
+            result = chatbot(
+                prompt,
+                max_new_tokens=200,
+                temperature=0.7,
+                do_sample=True
+            )
+
+            answer = result[0]["generated_text"]
+
             st.session_state.chat.append((user_input, answer))
 
     for q, a in reversed(st.session_state.chat):
@@ -104,32 +104,14 @@ if mode == "Chat Tutor":
 # ==========================
 
 elif mode == "Image Generator":
-    st.subheader("🎨 Generate Image (No API Key)")
+    st.subheader("🎨 AI Image Generator")
 
     prompt = st.text_input("Describe image")
 
-    @st.cache_resource
-    def load_image_model():
-        from diffusers import StableDiffusionPipeline
-        import torch
-
-        model_id = "runwayml/stable-diffusion-v1-5"
-
-        pipe = StableDiffusionPipeline.from_pretrained(
-            model_id,
-            torch_dtype=torch.float32
-        )
-
-        pipe = pipe.to("cpu")
-        return pipe
-
-    image_model = load_image_model()
-
     if st.button("Generate"):
         if prompt:
-            with st.spinner("Generating image... (first time slow)"):
-                image = image_model(prompt).images[0]
+            with st.spinner("Generating image..."):
 
-            st.image(image, caption=prompt)
+                image = image_model(prompt=prompt).images[0]
 
             st.image(image, caption=prompt)
