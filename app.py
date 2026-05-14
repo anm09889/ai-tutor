@@ -31,7 +31,7 @@ headers = {
 def get_answer(prompt):
 
     payload = {
-        "inputs": f"You are a helpful tutor. Explain clearly:\n{prompt}",
+        "inputs": f"You are a helpful AI tutor. Explain clearly:\n{prompt}",
         "parameters": {
             "max_new_tokens": 200,
             "temperature": 0.7
@@ -40,14 +40,25 @@ def get_answer(prompt):
 
     response = requests.post(API_URL, headers=headers, json=payload)
 
-    result = response.json()
+    # =========================
+    # SAFE CHECK (IMPORTANT FIX)
+    # =========================
+    try:
+        result = response.json()
+    except Exception:
+        return f"⚠ API Error (not JSON): {response.text}"
 
-    # safety fallback
+    # =========================
+    # HANDLE HF LOADING RESPONSE
+    # =========================
+    if isinstance(result, dict) and "error" in result:
+        return f"⚠ Hugging Face Error: {result['error']}"
+
+    if isinstance(result, dict) and "estimated_time" in result:
+        return "⏳ Model is loading. Try again in a few seconds."
+
     if isinstance(result, list) and "generated_text" in result[0]:
         return result[0]["generated_text"]
-
-    if "error" in result:
-        return "Error: " + result["error"]
 
     return str(result)
 
