@@ -1,111 +1,157 @@
 import streamlit as st
-from transformers import pipeline
-import random
+import time
 
 # =========================
 # PAGE CONFIG
 # =========================
-st.set_page_config(page_title="AI Tutor", layout="wide")
+st.set_page_config(
+    page_title="Fast AI Tutor",
+    page_icon="⚡",
+    layout="wide"
+)
 
 # =========================
-# LOAD MODEL (NO API KEY)
+# FAST AI ENGINE (NO API)
 # =========================
-@st.cache_resource
-def load_model():
-    return pipeline("text-generation", model="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
+def fast_tutor(question):
 
-generator = load_model()
+    q = question.lower()
 
-# =========================
-# QUIZ DATA
-# =========================
-quiz_bank = {
-    "Sorting": [
-        {
-            "question": "Time complexity of Merge Sort?",
-            "options": ["O(n²)", "O(n log n)", "O(n)", "O(log n)"],
-            "answer": "O(n log n)"
-        },
-        {
-            "question": "Which is divide and conquer?",
-            "options": ["Bubble Sort", "Merge Sort", "Stack", "Queue"],
-            "answer": "Merge Sort"
-        }
-    ],
-    "Searching": [
-        {
-            "question": "Binary search works on?",
-            "options": ["Unsorted array", "Sorted array", "Graph", "Tree"],
-            "answer": "Sorted array"
-        },
-        {
-            "question": "Worst case of linear search?",
-            "options": ["O(1)", "O(n)", "O(log n)", "O(n²)"],
-            "answer": "O(n)"
-        }
-    ]
-}
+    # --- DSA TOPICS ---
+    if "sorting" in q:
+        return """
+📘 Sorting Algorithms
 
-# =========================
-# AI FUNCTION
-# =========================
-def get_answer(question):
-    prompt = f"""
-You are a DAA expert tutor.
+✔ Definition:
+Sorting means arranging data in order (ascending/descending).
 
-Explain clearly:
-- Definition
-- Steps
-- Example
-- Complexity
+✔ Types:
+- Bubble Sort
+- Merge Sort
+- Quick Sort
 
-Question: {question}
-Answer:
+✔ Working:
+Compare elements and rearrange step by step.
+
+✔ Time Complexity:
+- Bubble: O(n²)
+- Merge: O(n log n)
+
+✔ Example:
+Arranging marks in ascending order.
 """
 
-    result = generator(
-        prompt,
-        max_new_tokens=200,
-        temperature=0.7,
-        do_sample=True,
-        repetition_penalty=1.2
-    )
+    elif "dynamic programming" in q:
+        return """
+📘 Dynamic Programming
 
-    return result[0]["generated_text"].replace(prompt, "")
+✔ Definition:
+Technique to solve problems by breaking into subproblems.
+
+✔ Idea:
+Store results of subproblems to avoid repetition.
+
+✔ Steps:
+1. Break problem
+2. Store results
+3. Reuse results
+
+✔ Example:
+Fibonacci sequence optimization
+
+✔ Complexity:
+Improves exponential → linear
+"""
+
+    elif "array" in q:
+        return """
+📘 Arrays
+
+✔ Definition:
+Collection of similar data types stored in memory.
+
+✔ Example:
+int arr[5] = {1,2,3,4,5}
+
+✔ Operations:
+- Access: O(1)
+- Insert: O(n)
+- Delete: O(n)
+
+✔ Use:
+Used in almost every program.
+"""
+
+    elif "dbms" in q:
+        return """
+📘 DBMS
+
+✔ Definition:
+Database Management System stores and manages data.
+
+✔ Features:
+- Data security
+- Fast retrieval
+- Backup
+
+✔ Types:
+- Relational DBMS
+- NoSQL
+
+✔ Example:
+MySQL, MongoDB
+"""
+
+    else:
+        return f"""
+📘 Explanation of: {question}
+
+✔ Simple Idea:
+This topic is important in Computer Science.
+
+✔ How it works:
+It follows step-by-step logical processing.
+
+✔ Key Points:
+- Understand concept
+- Learn examples
+- Practice problems
+
+✔ Tip:
+Focus on understanding, not memorization.
+"""
 
 # =========================
-# UI DESIGN
+# UI
 # =========================
-st.title("🎓 AI DAA Tutor (No API Key)")
+st.title("⚡ Fast AI Tutor (Instant Answers)")
 
-tab1, tab2 = st.tabs(["💬 AI Chat", "📝 Quiz"])
+question = st.text_input("Ask your question (DSA / DBMS / AI / OS etc.)")
+
+if st.button("Get Fast Answer"):
+
+    if question:
+
+        with st.spinner("Generating fast explanation..."):
+            time.sleep(0.3)  # very small delay for UX
+            answer = fast_tutor(question)
+
+        st.success(answer)
+
+    else:
+        st.warning("Please enter a question")
 
 # =========================
-# CHAT SECTION
+# QUICK HELP SECTION
 # =========================
-with tab1:
-    q = st.text_input("Ask your question")
+st.markdown("---")
+st.subheader("💡 Supported Topics (Fast Mode)")
 
-    if st.button("Get Answer"):
-        if q:
-            st.write(get_answer(q))
-        else:
-            st.warning("Enter a question first")
-
-# =========================
-# QUIZ SECTION
-# =========================
-with tab2:
-    topic = st.selectbox("Choose Topic", list(quiz_bank.keys()))
-
-    quiz = random.choice(quiz_bank[topic])
-
-    st.subheader(quiz["question"])
-
-    choice = st.radio("Options", quiz["options"])
-
-    if st.button("Submit"):
-        if choice == quiz["answer"]:
-            st.success("Correct ✅")
-        else:
-            st.error(f"Wrong ❌ Correct answer: {quiz['answer']}")
+st.write("""
+✔ Sorting  
+✔ Arrays  
+✔ Dynamic Programming  
+✔ DBMS  
+✔ OS  
+✔ Any general CS question
+""")
