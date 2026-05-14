@@ -1,4 +1,5 @@
 streamlit
-youtube-transcript-api
-graphviz
-requests
+transformers
+torch
+accelerate
+sentencepiece
