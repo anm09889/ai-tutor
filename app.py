@@ -1,166 +1,126 @@
-import streamlit as st
-import time
 import random
 
-# =========================
-# PAGE CONFIG
-# =========================
-st.set_page_config(
-    page_title="Universal AI Tutor",
-    page_icon="🧠",
-    layout="wide"
-)
-
-# =========================
-# MODERN UI
-# =========================
-st.markdown("""
-<style>
-.main {
-    text-align: center;
-    font-size: 38px;
-    font-weight: bold;
-    color: #4ade80;
-}
-
-.card {
-    background: #111827;
-    padding: 18px;
-    border-radius: 12px;
-    margin-top: 10px;
-    color: white;
-}
-
-.small {
-    color: #9ca3af;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# =========================
-# UNIVERSAL AI ENGINE (SMART FALLBACK)
-# =========================
 def ai_engine(query):
 
     q = query.lower()
 
-    # --- MATH / TECH ---
-    if any(word in q for word in ["algorithm", "sorting", "dp", "array", "tree", "graph"]):
-        return f"""
-📘 TECH EXPLANATION
+    # ---------------------------
+    # DBMS / TECH CATEGORY
+    # ---------------------------
+    if "dbms" in q or "database" in q:
 
-✔ Topic: {query}
+        responses = [
+            f"""
+DBMS (Database Management System) is basically software that helps store and manage data efficiently.
 
-✔ Definition:
-This is a computer science concept used to solve structured problems.
+Think of it like a digital library where data is organized so it can be easily accessed, updated, and managed.
+It is used in applications like banking systems, websites, and apps.
+""",
 
-✔ Key Idea:
-Break problems → process step-by-step → optimize solution.
+            f"""
+A DBMS is a system that controls how data is stored and retrieved.
 
-✔ Real Use:
-- Software development
-- AI systems
-- Search engines
+In simple terms, it acts like a smart organizer for large amounts of data.
+For example, when you use Instagram or banking apps, DBMS is working behind the scenes.
+""",
 
-✔ Complexity Insight:
-Depends on algorithm design (often O(n), O(log n), O(n²))
+            f"""
+Database Management System (DBMS) is used to handle large collections of data.
+
+It ensures data is stored safely, retrieved quickly, and managed properly.
+Without DBMS, handling large systems like social media or e-commerce would be impossible.
 """
+        ]
 
-    # --- SCIENCE ---
-    elif any(word in q for word in ["physics", "force", "energy", "motion", "gravity"]):
-        return f"""
-🔬 SCIENCE EXPLANATION
+        return random.choice(responses)
 
-✔ Topic: {query}
+    # ---------------------------
+    # DSA CATEGORY
+    # ---------------------------
+    elif any(word in q for word in ["sorting", "array", "tree", "graph", "algorithm"]):
 
-✔ Concept:
-This is a physics-related concept describing natural behavior.
+        responses = [
+            f"""
+This topic relates to data structures and algorithms.
 
-✔ Explanation:
-It explains how objects interact in the real world.
+It focuses on organizing data and solving problems efficiently using step-by-step logic.
 
-✔ Example:
-Used in motion, machines, and space systems.
+Example: Sorting arranges data, while trees and graphs represent relationships.
+""",
 
-✔ Key Insight:
-Based on laws of nature and mathematical models.
+            f"""
+In computer science, this concept is used to optimize problem-solving.
+
+It helps reduce time complexity and improve performance of programs.
+
+Real use: search engines, maps, and AI systems.
+""",
+
+            f"""
+This is a fundamental programming concept.
+
+It teaches how to structure data and apply logic to solve problems efficiently.
+
+It is widely used in software development and system design.
 """
+        ]
 
-    # --- GENERAL KNOWLEDGE ---
-    elif any(word in q for word in ["india", "history", "who", "capital", "president"]):
-        return f"""
-🌍 GENERAL KNOWLEDGE
+        return random.choice(responses)
 
-✔ Topic: {query}
+    # ---------------------------
+    # SCIENCE CATEGORY
+    # ---------------------------
+    elif any(word in q for word in ["physics", "force", "energy", "motion"]):
 
-✔ Answer:
-This is a factual real-world concept.
+        responses = [
+            f"""
+This is a physics concept that explains how the natural world behaves.
 
-✔ Explanation:
-It belongs to general knowledge and factual learning.
+It describes how objects move, interact, and respond to forces.
 
-✔ Tip:
-Always verify facts from trusted sources.
+Example: motion of a car or falling objects.
+""",
+
+            f"""
+In physics, this concept helps us understand energy and movement.
+
+It is based on natural laws and mathematical formulas.
+
+It is used in engineering, space science, and machines.
 """
+        ]
 
-    # --- DEFAULT SMART AI RESPONSE ---
+        return random.choice(responses)
+
+    # ---------------------------
+    # GENERAL CASE (SMART FALLBACK)
+    # ---------------------------
     else:
-        return f"""
-🧠 SMART EXPLANATION
 
-✔ Question:
-{query}
+        responses = [
+            f"""
+Let’s understand this step-by-step.
 
-✔ Simple Answer:
-This concept is part of general learning and can be understood step-by-step.
+{query} is an important concept that can be learned by breaking it into smaller ideas.
 
-✔ Breakdown:
-1. Understand the topic
-2. Break into smaller parts
-3. Learn with examples
-4. Apply in real life
+Once you understand the basics, it becomes easy to apply in real situations.
+""",
 
-✔ Insight:
-Most concepts become easy when connected with real-world examples.
+            f"""
+Good question.
 
-✔ Tip:
-Focus on logic, not memorization.
+{query} is something you can understand by focusing on its core idea first, then examples.
+
+Most concepts become clear when you connect them with real-world use cases.
+""",
+
+            f"""
+This topic can be explained in a simple way.
+
+Start with the definition, then understand how it works, and finally see where it is used.
+
+That approach makes learning much easier.
 """
+        ]
 
-# =========================
-# HEADER
-# =========================
-st.markdown('<div class="main">🧠 Universal AI Tutor</div>', unsafe_allow_html=True)
-st.write("Ask anything — AI will explain in simple + structured way")
-
-# =========================
-# INPUT
-# =========================
-question = st.text_input("Enter your question (any subject)")
-
-# =========================
-# ANSWER BUTTON
-# =========================
-if st.button("Get Answer"):
-
-    if question:
-
-        with st.spinner("Thinking deeply..."):
-            time.sleep(0.6)
-
-            answer = ai_engine(question)
-
-        st.markdown(f"""
-        <div class="card">
-        {answer}
-        </div>
-        """, unsafe_allow_html=True)
-
-    else:
-        st.warning("Please enter a question")
-
-# =========================
-# FOOTER HELP
-# =========================
-st.markdown("---")
-st.markdown("<p class='small'>Supports: DSA, Science, GK, Math, Technology, and general questions</p>", unsafe_allow_html=True)
+        return random.choice(responses)
